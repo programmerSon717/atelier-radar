@@ -17,6 +17,11 @@ concurrency:
   group: radar              # 이전 실행이 아직 돌면 겹치지 않게
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  pages: write              # GitHub Pages 배포용
+  id-token: write
+
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -56,3 +61,25 @@ jobs:
           else
             python -m src.main
           fi
+
+      # 실행 결과로 정적 사이트를 다시 만든다 → 링크만 있으면 누구나 본다
+      - name: 사이트 생성
+        run: python tools/build_site.py
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: run
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

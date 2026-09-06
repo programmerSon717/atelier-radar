@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<!-- 개인 구직 현황판이다. 검색엔진에 올라갈 이유가 없다. -->
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="일본·한국·대만 건축설계 신입공채/인턴 추적">
+<title>Atelier Radar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --paper:#F4F6F7; --sheet:#FFFFFF; --ink:#171C22; --graphite:#67727E;
+  --hair:#C9D1D6; --hair-soft:#E3E9EC;
+  --redline:#C4432C; --open:#2F7355; --hold:#9A6B14; --closed:#8B939C;
+  --tint:#EDF1F3;
+  --f-ui:'Archivo',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#12161A; --sheet:#181D22; --ink:#E6EBEE; --graphite:#8D98A3;
+    --hair:#2C343B; --hair-soft:#232A30;
+    --redline:#E2705A; --open:#5FA783; --hold:#C79B45; --closed:#6E7880;
+    --tint:#1D2329;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12161A; --sheet:#181D22; --ink:#E6EBEE; --graphite:#8D98A3;
+  --hair:#2C343B; --hair-soft:#232A30;
+  --redline:#E2705A; --open:#5FA783; --hold:#C79B45; --closed:#6E7880;
+  --tint:#1D2329;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-ui);
+  font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.sheet{max-width:1120px;margin:0 auto;padding:28px 20px 72px}
+
+/* ── title block: 실제 도면 표제란처럼 격자 ── */
+.titleblock{border:1.5px solid var(--ink);background:var(--sheet);
+  display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr;}
+.tb{padding:12px 14px;border-right:1px solid var(--hair)}
+.tb:last-child{border-right:0}
+.tb-lead{grid-column:1/-1;border-right:0;border-bottom:1px solid var(--ink);
+  display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 16px}
+.mark{font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--graphite);display:block;margin-bottom:5px}
+h1{font-size:26px;font-weight:700;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.sub{color:var(--graphite);font-size:13.5px;margin:0}
+.val{font-family:var(--f-mono);font-size:16px;font-weight:500;
+  font-variant-numeric:tabular-nums}
+.val small{font-size:11px;color:var(--graphite);font-weight:400}
+
+/* ── 커버리지 게이지 ── */
+.coverage{margin-top:26px;display:grid;gap:1px;background:var(--hair);
+  border:1px solid var(--hair);grid-template-columns:repeat(3,1fr)}
+.cov{background:var(--sheet);padding:13px 15px}
+.cov-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.cov-name{font-weight:600;font-size:14px}
+.cov-num{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums;
+  color:var(--graphite)}
+.bar{height:5px;background:var(--hair-soft);margin-top:9px;display:flex;gap:1px}
+.bar i{display:block;height:100%}
+.bar .b-ok{background:var(--open)} .bar .b-no{background:var(--closed);opacity:.42}
+
+/* ── schedule: 창호일람표 같은 표 ── */
+.schedhead{display:flex;align-items:baseline;justify-content:space-between;
+  gap:12px;margin:34px 0 0;flex-wrap:wrap}
+h2{font-size:15px;font-weight:600;letter-spacing:.01em;margin:0}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;
+  text-transform:uppercase;padding:4px 10px;border:1px solid var(--hair);
+  background:var(--sheet);color:var(--graphite);cursor:pointer;border-radius:0}
+.chip[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--tint)}
+.chip:focus-visible{outline:2px solid var(--redline);outline-offset:1px}
+
+.rows{margin-top:12px;border-top:1.5px solid var(--ink)}
+.row{display:grid;grid-template-columns:9px 1fr;border-bottom:1px solid var(--hair-soft);
+  background:var(--sheet)}
+.stripe{background:var(--closed)}
+.row[data-v="fit"] .stripe{background:var(--open)}
+.row[data-v="conditional"] .stripe{background:var(--hold)}
+.row[data-v="blocked"] .stripe{background:var(--closed)}
+.row[data-v="expired"] .stripe{background:var(--redline)}
+.body{padding:13px 16px;min-width:0}
+.r1{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+.title{font-weight:600;font-size:15px;letter-spacing:-.005em}
+.firm{color:var(--graphite);font-size:13px}
+.r2{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.tag{font-family:var(--f-mono);font-size:11px;padding:2px 7px;border:1px solid var(--hair);
+  color:var(--graphite);white-space:nowrap}
+.tag.block{border-color:var(--closed);color:var(--closed)}
+.tag.warn{border-color:var(--hold);color:var(--hold)}
+.tag.good{border-color:var(--open);color:var(--open)}
+.tag.due{border-color:var(--redline);color:var(--redline);font-weight:600}
+.sum{color:var(--graphite);font-size:13.5px;margin-top:8px;max-width:74ch}
+details{margin-top:9px}
+summary{font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--graphite);cursor:pointer}
+summary:focus-visible{outline:2px solid var(--redline);outline-offset:2px}
+.jd{display:grid;gap:14px;margin-top:11px;padding:13px 15px;background:var(--tint);
+  grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.jd h4{font-family:var(--f-mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--graphite);margin:0 0 6px;font-weight:500}
+.jd ul{margin:0;padding-left:16px;font-size:13.5px}
+.jd li{margin-bottom:3px}
+.jd p{margin:0;font-size:13.5px}
+a.src{font-family:var(--f-mono);font-size:11.5px;color:var(--redline);
+  text-decoration:none;border-bottom:1px solid currentColor;padding-bottom:1px}
+a.src:hover{background:var(--tint)}
+
+/* ── 미추적 목록 ── */
+.gap{margin-top:38px;border:1px dashed var(--hair);background:var(--sheet);padding:16px 18px}
+.gaplist{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
+.gapitem{font-family:var(--f-mono);font-size:11.5px;color:var(--graphite);
+  border:1px solid var(--hair-soft);padding:3px 8px}
+.note{color:var(--graphite);font-size:13px;max-width:70ch;margin:6px 0 0}
+footer{margin-top:32px;padding-top:14px;border-top:1px solid var(--hair);
+  font-family:var(--f-mono);font-size:11px;color:var(--graphite);
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hide{display:none}
+@media (max-width:720px){
+  .titleblock{grid-template-columns:1fr 1fr}
+  .coverage{grid-template-columns:1fr}
+  h1{font-size:22px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="sheet">
+<header class="titleblock">
+  <div class="tb tb-lead">
+    <h1>Atelier Radar</h1>
+    <p class="sub">일본 · 한국 · 대만 건축설계 신입공채 및 인턴 추적</p>
+  </div>
+  <div class="tb"><span class="mark">대상</span>
+    <div class="val" style="font-size:14px">Jasmin (Jia-Chen) Lin</div>
+    <div class="sub" style="font-size:12.5px">Columbia GSAPP M.Arch · 2027.05 졸업</div></div>
+  <div class="tb"><span class="mark">추적 사무소</span>
+    <div class="val">15<small> / 45</small></div></div>
+  <div class="tb"><span class="mark">수집 공고</span>
+    <div class="val">18<small> 건</small></div></div>
+  <div class="tb"><span class="mark">최종 확인</span>
+    <div class="val" style="font-size:14px">2026-09-06</div></div>
+</header>
+
+<section class="coverage"><div class="cov"><div class="cov-top"><span class="cov-name">한국</span>
+<span class="cov-num">6/18 추적 · 공고 11</span></div>
+<div class="bar"><i class="b-ok" style="flex:6"></i><i class="b-no" style="flex:12"></i></div></div><div class="cov"><div class="cov-top"><span class="cov-name">일본</span>
+<span class="cov-num">8/18 추적 · 공고 6</span></div>
+<div class="bar"><i class="b-ok" style="flex:8"></i><i class="b-no" style="flex:10"></i></div></div><div class="cov"><div class="cov-top"><span class="cov-name">대만</span>
+<span class="cov-num">1/9 추적 · 공고 1</span></div>
+<div class="bar"><i class="b-ok" style="flex:1"></i><i class="b-no" style="flex:8"></i></div></div></section>
+
+<div class="schedhead">
+  <h2>공고 일람</h2>
+  <div class="filters" role="group" aria-label="국가 필터">
+    <button class="chip" data-f="all" aria-pressed="true">전체</button>
+    <button class="chip" data-f="KR" aria-pressed="false">한국</button>
+    <button class="chip" data-f="JP" aria-pressed="false">일본</button>
+    <button class="chip" data-f="TW" aria-pressed="false">대만</button>
+  </div>
+</div>
+<div class="rows" id="rows"><article class="row" data-v="fit" data-c="JP">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">学生インターンシップ・オープンデスク</span>
+<span class="firm">Klein Dytham architecture · Tokyo · 지원 가능</span></div>
+<div class="r2"><span class="tag good">🟢 영어로 가능</span></div>
+<p class="sum">学生インターンシップおよびオープンデスクを随時募集しています。期間は最大2ヶ月までで、平日のみの勤務となります。</p><details><summary>상세 보기</summary><div class="jd"><div><h4>자격 요건</h4><ul><li>オープンマインドでコミュニケーションできる方</li></ul></div><div><h4>조건</h4><p>고용형태: 인턴<br>급여: 無給（交通費支給・上限あり）<br>전형: ポートフォリオ(10MB以下PDF)と略歴、希望期間をメール送付。書類選考通過者のみ10営業日以内に連絡。</p></div><div><h4>확인 안 됨</h4><p>設計・デザインスタッフ（正社員）の募集は現在行われていません。インターンは語学力不問と記載されています。</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.klein-dytham.com/jobs" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="JP">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">意匠（総合）設計監理 / 構造・環境（電気・機械）設計監理 / 意匠（総合）・構造・環境（電気・機械）工事監理・積算及びコストマネジメント</span>
+<span class="firm">Ishimoto Architectural &amp; Engineering Firm · 일본 · 조건부</span></div>
+<div class="r2"><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag ">⚪️ 경력 요건: 경력직 채용으로 보임 (상세 요건은 PDF 확인 필요)</span><span class="tag warn">🔧 설계직 아님 — 감리</span></div>
+<p class="sum">경력직 대상의 설계 및 감리, 적산 분야 채용 공고입니다. 상세한 모집 요강은 별도 PDF 파일을 통해 확인해야 합니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>확인 안 됨</h4><p>경력직 채용 공고만 활성화되어 있으며, 신입 및 인턴 채용은 현재 마감된 상태입니다. 언어 요건 및 비자 스폰서십 정보는 페이지 내에 명시되어 있지 않습니다.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.ishimoto.co.jp/recruit/career/" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="JP">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">新卒採用（障がい者採用）</span>
+<span class="firm">Obayashi Corporation — Design · 일본 · 조건부</span></div>
+<div class="r2"><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 新卒</span><span class="tag ">⚪️ 졸업연도 조건: 2027年3月卒業・修了見込者およびそれ以前に卒業・修了済の者</span></div>
+<p class="sum">障がい者手帳をお持ちの方を対象とした新卒採用です。建築・土木・設備・事務など幅広い職種で募集を行っています。</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>建築設計、建築施工、開発事業、技術研究開発など</li><li>土木設計、施工、技術研究開発など</li><li>設備施工管理、設計など</li><li>建設機械・電気設備の計画、運用、施工管理など</li><li>営業、不動産、経営企画、総務、人事、ICTなど</li></ul></div><div><h4>자격 요건</h4><ul><li>障がい者手帳をお持ちの方、もしくは入社までに取得予定の方</li></ul></div><div><h4>조건</h4><p>고용형태: 正社員<br>급여: 大学卒：240,000円〜300,000円（勤務地・区分による）<br>전형: 書類選考、SPI試験、面接</p></div><div><h4>확인 안 됨</h4><p>障がい者手帳保持者限定の募集です。言語要件の明記はありません。</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.obayashi.co.jp/recruit/challenged.html" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="JP">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">通年採用（第二新卒・既卒）</span>
+<span class="firm">Obayashi Corporation — Design · 일본 · 조건부</span></div>
+<div class="r2"><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag ">⚪️ 경력 요건: 正社員としての就業経験がない方、または早期転職希望者</span></div>
+<p class="sum">正社員としての就業経験がない方や、海外大学卒業後すぐの入社を希望する方を対象とした通年採用です。</p><details><summary>상세 보기</summary><div class="jd"><div><h4>조건</h4><p>고용형태: 正社員<br>전형: プレエントリー→本エントリー（適性検査）→書類選考→面接（複数回）→最終面接</p></div><div><h4>확인 안 됨</h4><p>具体的な職種や給与は本エントリー時に案内されます。言語要件の明記はありません。</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.obayashi.co.jp/recruit/year-round.html" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="JP">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">新卒採用 (営業職・プランニング職・デザイン職・制作管理職)</span>
+<span class="firm">NOMURA Co., Ltd. · 東京または大阪 · 조건부</span></div>
+<div class="r2"><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 경력 3년 이하 대상 — 入社時点で社会人経験3年以下</span></div>
+<p class="sum">乃村工藝社の新卒採用。営業、プランニング、デザイン、制作管理の4職種を募集。入社時点で30歳以下かつ社会人経験3年以下であれば応募可能。</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>営業職: 顧客ニーズ把握、プロジェクト推進、新規顧客開発</li><li>プランニング職: 調査・分析、事業提案、企画構想から実現までのフェーズ管理</li><li>デザイン職: 調査・企画、設計・デザインワーク、複合的な空間演出デザイン</li><li>制作管理職: 安全・品質・予算・工程管理、ものづくりの統括</li></ul></div><div><h4>자격 요건</h4><ul><li>入社時点で30歳以下</li><li>入社時点で社会人経験3年以下</li><li>該当年度の4月1日に入社が可能であること</li></ul></div><div><h4>조건</h4><p>고용형태: 正社員<br>급여: 詳細はマイページをご確認ください</p></div><div><h4>확인 안 됨</h4><p>言語要件や卒業年度の指定はページ上に明記されていません。給与詳細はマイページ登録後に確認する形式です。</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.nomurakougei.co.jp/recruit/fresh/" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">인기있는 모듈러 건축 설계, 전기, 해외사업 신입 및 경력 채용</span>
+<span class="firm">(주)플랜엠 · 한국 · 조건부</span></div>
+<div class="r2"><span class="tag due">마감 2026-09-20</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 신입 및 경력</span></div>
+<p class="sum">모듈러 건축 설계 및 전기, 해외사업 부문 신입 및 경력 채용 공고입니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>모듈러 건축 설계</li><li>전기 설계</li><li>해외사업 업무</li></ul></div><div><h4>확인 안 됨</h4><p>언어 요건, 졸업 연도, 급여, 고용 형태, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54813312&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">건축설계 신입 및 경력직 채용</span>
+<span class="firm">(주)엔씨티엔지니어링종합건축사사무소 · 한국 · 조건부</span></div>
+<div class="r2"><span class="tag due">마감 2026-09-20</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 신입 및 경력</span></div>
+<p class="sum">건축설계 신입 및 경력직을 모집하며 정규직 채용입니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>건축설계 업무</li></ul></div><div><h4>요구 툴</h4><p>CAD</p></div><div><h4>조건</h4><p>고용형태: 정규직</p></div><div><h4>확인 안 됨</h4><p>언어 요건, 졸업 연도, 급여, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54808265&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">연봉상승률 15% 이상 2027년 제로투엔 신입 채용</span>
+<span class="firm">제로투엔건축사사무소종합건설(주) · 한국 · 조건부</span></div>
+<div class="r2"><span class="tag due">마감 D-7</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 신입</span><span class="tag ">⚪️ 졸업연도 조건: 2027년 졸업 예정자 추정</span><span class="tag warn">🏗 시공사 (설계사무소 아님)</span></div>
+<p class="sum">2027년 신입 채용 공고로 연봉 상승률 15% 이상을 강조하고 있습니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>확인 안 됨</h4><p>상세 업무, 언어 요건, 급여, 고용 형태, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54825150&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">건축설계 정직원 (신입/경력) 채용 공고</span>
+<span class="firm">(주)건축사사무소페타 · 한국 · 조건부</span></div>
+<div class="r2"><span class="tag due">마감 2026-10-17</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 신입 및 경력</span></div>
+<p class="sum">건축설계 신입 및 경력 정규직 채용 공고입니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>건축설계</li></ul></div><div><h4>요구 툴</h4><p>CAD · Revit</p></div><div><h4>조건</h4><p>고용형태: 정규직</p></div><div><h4>확인 안 됨</h4><p>언어 요건, 졸업 연도, 급여, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54766398&amp;location=ts&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n&amp;search_uuid=aaf5837f-5016-401c-b7fd-bbaac3ceded1" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">주식회사에프에이건축사사무소 - 건축설계/BIM설계/반도체 산업시설</span>
+<span class="firm">주식회사에프에이건축사사무소 · 한국 · 조건부</span></div>
+<div class="r2"><span class="tag due">마감 상시채용</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 신입 및 경력</span></div>
+<p class="sum">건축설계 및 BIM 설계 분야 신입/경력 상시 채용입니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>건축설계</li><li>BIM설계</li><li>반도체 산업시설 설계</li></ul></div><div><h4>요구 툴</h4><p>AutoCAD · BIM</p></div><div><h4>조건</h4><p>고용형태: 정규직·계약직</p></div><div><h4>확인 안 됨</h4><p>언어 요건, 졸업 연도, 급여, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54892281&amp;location=ts&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n&amp;search_uuid=aaf5837f-5016-401c-b7fd-bbaac3ceded1" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">(주)에이엔디파트너스건축사사무소 건축설계/디자인 신입 모집</span>
+<span class="firm">(주)에이엔디파트너스건축사사무소 · 한국 · 조건부</span></div>
+<div class="r2"><span class="tag due">마감 2026-11-01</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 신입</span></div>
+<p class="sum">건축설계 및 디자인 신입 모집 공고입니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>건축설계</li><li>디자인</li></ul></div><div><h4>요구 툴</h4><p>CAD</p></div><div><h4>조건</h4><p>고용형태: 정규직·기간제</p></div><div><h4>확인 안 됨</h4><p>언어 요건, 졸업 연도, 급여, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54925393&amp;location=ts&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n&amp;search_uuid=aaf5837f-5016-401c-b7fd-bbaac3ceded1" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">[(주)해승건축사사무소] 설계부 건축설계(공동주택) 채용</span>
+<span class="firm">(주)해승종합건축사사무소 · 한국 · 조건부</span></div>
+<div class="r2"><span class="tag due">마감 채용시</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 신입 및 경력</span></div>
+<p class="sum">공동주택 건축설계 신입 및 경력직 채용입니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>공동주택 건축설계</li></ul></div><div><h4>요구 툴</h4><p>CAD · AutoCAD</p></div><div><h4>조건</h4><p>고용형태: 정규직</p></div><div><h4>확인 안 됨</h4><p>언어 요건, 졸업 연도, 급여, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54701210&amp;location=ts&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n&amp;search_uuid=aaf5837f-5016-401c-b7fd-bbaac3ceded1" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">himma korea architecture studio 건축설계 신입 및 경력직 모집</span>
+<span class="firm">himma korea architecture studio · 한국 · 조건부</span></div>
+<div class="r2"><span class="tag due">마감 채용시</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 신입 및 경력</span></div>
+<p class="sum">건축설계 신입 및 경력직 모집 공고입니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>건축설계</li></ul></div><div><h4>조건</h4><p>고용형태: 정규직</p></div><div><h4>확인 안 됨</h4><p>언어 요건, 졸업 연도, 급여, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54558922&amp;location=ts&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n&amp;search_uuid=aaf5837f-5016-401c-b7fd-bbaac3ceded1" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">건축사사무소 율에서 건축설계, 감리 (신입/경력) 직원 모집합니</span>
+<span class="firm">건축사사무소율 · 한국 · 조건부</span></div>
+<div class="r2"><span class="tag due">마감 상시채용</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag good">🟢 신입 가능 — 신입 및 경력</span><span class="tag warn">🔧 설계직 아님 — 감리</span></div>
+<p class="sum">건축설계 및 감리 신입/경력 상시 채용입니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>건축설계</li><li>감리</li></ul></div><div><h4>요구 툴</h4><p>CAD</p></div><div><h4>조건</h4><p>고용형태: 정규직</p></div><div><h4>확인 안 됨</h4><p>언어 요건, 졸업 연도, 급여, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54516720&amp;location=ts&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n&amp;search_uuid=aaf5837f-5016-401c-b7fd-bbaac3ceded1" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="conditional" data-c="TW">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">實習生</span>
+<span class="firm">Bio-architecture Formosana · 대만 · 조건부</span></div>
+<div class="r2"><span class="tag ">⚪️ 언어 요건 미확인</span></div>
+<p class="sum">台北, 台中, 台南 지역에서 근무할 인턴을 상시 모집 중입니다. 이력서와 포트폴리오를 이메일로 제출해야 합니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>조건</h4><p>고용형태: 인턴<br>전형: 서류 접수 후 2주 이내 합격자 대상 면접 진행</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.bioarch.com.tw/recruit" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="blocked" data-c="JP">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">Internship at Tokyo Office</span>
+<span class="firm">Shigeru Ban Architects · Tokyo, Japan · 요건 미달</span></div>
+<div class="r2"><span class="tag good">🟢 영어로 가능</span><span class="tag block">🔴 경력 2년 요구 — Architecture school (university level) at least 2 years completed</span></div>
+<p class="sum">Shigeru Ban Architects Tokyo office offers an internship program for architecture students to learn in a professional environment. The program focuses on design tasks under staff supervision and requires strong physical model-making skills.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>Work experience activities under supervision of staff members</li><li>Involvement in various phases of architectural design from concept to detailed design</li></ul></div><div><h4>자격 요건</h4><ul><li>Completed at least 2 years of architecture school</li><li>Available for 3 months</li><li>Fluent in English</li><li>Excellent skills in making physical models</li><li>Self-motivated and ability to work as part of a team</li></ul></div><div><h4>우대 사항</h4><ul><li>Knowledge of Rhino/Grasshopper</li></ul></div><div><h4>요구 툴</h4><p>Rhino · Grasshopper</p></div><div><h4>조건</h4><p>고용형태: intern<br>전형: Email application (CV and portfolio) -&gt; Only successful candidates will be contacted</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://shigerubanarchitects.com/internship/" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="blocked" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">Architect Staff</span>
+<span class="firm">Kengo Kuma &amp; Associates — Seoul · 한국 · 요건 미달</span></div>
+<div class="r2"><span class="tag ">🗣 요건 원문: Fluency in written and spoken Korean and business level – Japanese/English (at Seoul office)</span><span class="tag block">🔴 일본어 필수 — 현재 미보유</span><span class="tag warn">🟡 한국어 필수 — 현재 초급</span><span class="tag block">🔴 경력직 요건 — Professional experiences as an active full time office architect (not include internships and year-out experiences) in the international field for a few years or more</span></div>
+<p class="sum">서울 오피스에서 건축 설계 스태프를 상시 채용 중입니다. 건축학 석사 학위와 한국어 유창성, 일본어 또는 영어 비즈니스 레벨이 필수이며, 국제적인 실무 경력을 우대합니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>Strong design talent</li><li>Excellent communication and organization skills in a complex environment</li><li>Physical strength and mental strength with high motivation</li></ul></div><div><h4>자격 요건</h4><ul><li>Master degree in architecture</li><li>Fluency in written and spoken Korean</li><li>Business level Japanese/English</li><li>Excellent skills in AutoCAD, Adobe CS and Microsoft Office</li></ul></div><div><h4>우대 사항</h4><ul><li>Japanese &amp; Chinese (Mandarin) desirable</li><li>Good knowledge of 3D Studio Max and Rhinoceros</li></ul></div><div><h4>요구 툴</h4><p>AutoCAD · Adobe CS · Microsoft Office · 3D Studio Max · Rhinoceros</p></div><div><h4>조건</h4><p>전형: Documentary screening (reply only to those who passed within 2 months)</p></div><div><h4>확인 안 됨</h4><p>연봉 및 고용 형태 미기재. 비자 스폰서십 언급 없음.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://kkaa.co.jp/en/recruit/architect-staff/" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article><article class="row" data-v="blocked" data-c="KR">
+<div class="stripe"></div><div class="body">
+<div class="r1"><span class="title">[설계팀] 건축설계 경력 채용 공고</span>
+<span class="firm">(주)종합건축사사무소도우건축 · 한국 · 요건 미달</span></div>
+<div class="r2"><span class="tag due">마감 2026-10-04</span><span class="tag ">⚪️ 언어 요건 미확인</span><span class="tag block">🔴 경력 3년 요구 — 경력 3년 이상</span></div>
+<p class="sum">건축설계 경력직 채용 공고입니다.</p><details><summary>상세 보기</summary><div class="jd"><div><h4>담당 업무</h4><ul><li>건축설계</li></ul></div><div><h4>조건</h4><p>고용형태: 정규직</p></div><div><h4>확인 안 됨</h4><p>경력 3년 이상으로 신입 지원 불가할 수 있음. 언어 요건, 졸업 연도, 급여, 전형 절차 미기재.</p></div></div></details>
+<p style="margin:10px 0 0"><a class="src" href="https://www.saramin.co.kr/zf_user/jobs/relay/view?view_type=search&amp;rec_idx=54946320&amp;location=ts&amp;searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84&amp;searchType=search&amp;paid_fl=n&amp;search_uuid=aaf5837f-5016-401c-b7fd-bbaac3ceded1" target="_blank" rel="noopener">공고 원문 →</a></p>
+</div></article></div>
+
+<section class="gap">
+  <span class="mark">아직 추적하지 못하는 사무소 — 30곳</span>
+  <p class="note">채용 페이지 주소를 아직 못 찾았거나, 자바스크립트로 그려서 본문을 읽을 수 없는 곳이다.
+  여기 있는 동안은 공고가 올라와도 잡히지 않는다.</p>
+  <div class="gaplist"><span class="gapitem">日建設計 <span style="opacity:.55">JP</span></span><span class="gapitem">三菱地所設計 <span style="opacity:.55">JP</span></span><span class="gapitem">竹中工務店 設計本部 <span style="opacity:.55">JP</span></span><span class="gapitem">隈研吾建築都市設計事務所 <span style="opacity:.55">JP</span></span><span class="gapitem">藤本壮介建築設計事務所 <span style="opacity:.55">JP</span></span><span class="gapitem">SANAA / 妹島和世建築設計事務所 <span style="opacity:.55">JP</span></span><span class="gapitem">西沢立衛建築設計事務所 <span style="opacity:.55">JP</span></span><span class="gapitem">伊東豊雄建築設計事務所 <span style="opacity:.55">JP</span></span><span class="gapitem">安藤忠雄建築研究所 <span style="opacity:.55">JP</span></span><span class="gapitem">大西麻貴+百田有希 / o+h <span style="opacity:.55">JP</span></span><span class="gapitem">해안종합건축사사무소 <span style="opacity:.55">KR</span></span><span class="gapitem">삼우종합건축사사무소 <span style="opacity:.55">KR</span></span><span class="gapitem">종합건축사사무소 건원 <span style="opacity:.55">KR</span></span><span class="gapitem">디에이그룹엔지니어링종합건축사사무소 <span style="opacity:.55">KR</span></span><span class="gapitem">원오원 아키텍스 <span style="opacity:.55">KR</span></span><span class="gapitem">매스스터디스 <span style="opacity:.55">KR</span></span><span class="gapitem">아이아크건축사사무소 <span style="opacity:.55">KR</span></span><span class="gapitem">원도시건축 <span style="opacity:.55">KR</span></span><span class="gapitem">운생동건축사사무소 <span style="opacity:.55">KR</span></span><span class="gapitem">Gensler — Seoul <span style="opacity:.55">KR</span></span><span class="gapitem">Aedas — Seoul <span style="opacity:.55">KR</span></span><span class="gapitem">시공테크 <span style="opacity:.55">KR</span></span><span class="gapitem">潘冀聯合建築師事務所 <span style="opacity:.55">TW</span></span><span class="gapitem">姚仁喜｜大元建築工場 <span style="opacity:.55">TW</span></span><span class="gapitem">大矩聯合建築師事務所 <span style="opacity:.55">TW</span></span><span class="gapitem">常式建築師事務所 <span style="opacity:.55">TW</span></span><span class="gapitem">禾磊建築 <span style="opacity:.55">TW</span></span><span class="gapitem">台灣餘弦建築師事務所 <span style="opacity:.55">TW</span></span><span class="gapitem">竹間聯合建築師事務所 <span style="opacity:.55">TW</span></span><span class="gapitem">境向聯合建築師事務所 <span style="opacity:.55">TW</span></span></div>
+</section>
+
+<footer><span>출처는 각 사무소 채용 페이지 및 잡보드 원문</span>
+<span>확인되지 않은 항목은 추정하지 않고 비워 둔다</span></footer>
+</div>
+
+<script>
+const rows=document.getElementById('rows');
+document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+  const f=b.dataset.f;
+  rows.querySelectorAll('.row').forEach(r=>
+    r.classList.toggle('hide', f!=='all' && r.dataset.c!==f));
+}));
+</script>
+</body>
+</html>
