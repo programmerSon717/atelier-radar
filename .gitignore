@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 store/
 data/profile/*.pdf
+.DS_Store
+**/.DS_Store
