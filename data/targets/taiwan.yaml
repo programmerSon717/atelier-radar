@@ -1,0 +1,80 @@
+# 台灣 — 추적 대상 (초안)
+# ★ 후보자 Mandarin 네이티브 + 대만 국적 → 언어·비자 장벽 없음. 지원 가능 폭 가장 넓음.
+country: TW
+offices:
+  - id: tw-jjp
+    name: { zh: "潘冀聯合建築師事務所", en: "J. J. Pan & Partners (JJP)" }
+    city: 台北
+    tier: large
+    careers_url: "https://www.jjpan.com"
+    note: "대만 최대급. 신입 채용 활발. 미국 유학파 선호 이력 있음"
+    hiring_types: [new_grad, intern]
+    eng_ok: likely
+    verified: false
+    priority: high
+  - id: tw-artech
+    name: { zh: "姚仁喜｜大元建築工場", en: "KRIS YAO | ARTECH" }
+    city: 台北
+    tier: large
+    note: "국제적 인지도 높음. 해외 유학 배경 우대 추정"
+    hiring_types: [new_grad, intern]
+    eng_ok: likely
+    verified: false
+    priority: high
+  - id: tw-bioarch
+    name: { zh: "九典聯合建築師事務所", en: "Bio-architecture Formosana" }
+    careers_url: "https://www.bioarch.com.tw/recruit"
+    city: 台北
+    tier: large
+    note: "친환경·녹색건축 특화 — 후보자 ClimateStudio 스킬과 매치"
+    hiring_types: [new_grad, intern]
+    eng_ok: unknown
+    verified: false
+    priority: high
+  - id: tw-daju
+    name: { zh: "大矩聯合建築師事務所", en: "Da Ju Architects" }
+    city: 台北
+    tier: large
+    hiring_types: [new_grad]
+    eng_ok: unknown
+    verified: false
+  - id: tw-formosstudio
+    name: { zh: "常式建築師事務所", en: "Formosstudio" }
+    city: 台北
+    tier: atelier
+    hiring_types: [year_round]
+    eng_ok: unknown
+    verified: false
+  - id: tw-helei
+    name: { zh: "禾磊建築", en: "Helei Architects" }
+    city: 台北
+    tier: atelier
+    hiring_types: [year_round]
+    eng_ok: unknown
+    verified: false
+  - id: tw-cosine
+    name: { zh: "台灣餘弦建築師事務所", en: "Cosine Architects" }
+    city: 台北
+    tier: atelier
+    hiring_types: [year_round]
+    eng_ok: unknown
+    verified: false
+  - id: tw-zhujian
+    name: { zh: "竹間聯合建築師事務所", en: "Chu-Chien Architects" }
+    city: 台北
+    tier: mid
+    hiring_types: [year_round]
+    eng_ok: unknown
+    verified: false
+  - id: tw-jingxiang
+    name: { zh: "境向聯合建築師事務所", en: "Jing Xiang Architects" }
+    city: 台北
+    tier: mid
+    hiring_types: [year_round]
+    eng_ok: unknown
+    verified: false
+
+job_boards:
+  - { name: "104人力銀行", url: "https://www.104.com.tw", note: "建築設計 키워드" }
+  - { name: "1111人力銀行", url: "https://www.1111.com.tw" }
+  - { name: "台灣建築報導雜誌社 求職", url: "https://www.ta-mag.net" }

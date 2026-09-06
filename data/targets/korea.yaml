@@ -1,0 +1,160 @@
+# 한국 — 추적 대상 (초안). verified:false = 봇이 실제 채용페이지로 검증해야 함
+# eng_ok: 영어만으로 지원/근무 가능 추정치. 전부 봇이 재확인 대상.
+country: KR
+offices:
+  # ── 대형 종합건축사사무소 (신입공채 존재) ──
+  - id: kr-heerim
+    name: { ko: "희림종합건축사사무소", en: "Heerim Architects & Planners" }
+    careers_url: "https://www.jobkorea.co.kr/Recruit/Co_Read/C/heerim"
+    fetch_note: "자사 채용페이지는 recruiter.co.kr SPA 라 긁히지 않음 → 잡코리아 회사페이지 사용"
+    city: 서울
+    tier: large
+    hiring_types: [new_grad, intern]
+    eng_ok: partial   # 해외프로젝트 많음. 그래도 한국어 요구 가능성 높음
+    verified: false
+  - id: kr-junglim
+    name: { ko: "정림건축종합건축사사무소", en: "Junglim Architecture" }
+    careers_url: "https://junglim.com/recruit/"
+    fetch_note: "junglim.recruiter.co.kr 은 SPA. 자사 랜딩은 본문이 얇음(693자)"
+    city: 서울
+    tier: large
+    hiring_types: [new_grad, intern]
+    eng_ok: unknown
+    verified: false
+  - id: kr-gansam
+    name: { ko: "간삼건축종합건축사사무소", en: "Gansam Architects & Partners" }
+    careers_url: "https://www.gansam.com/about/recruitment.php"
+    city: 서울
+    tier: large
+    hiring_types: [new_grad, intern]
+    eng_ok: unknown
+    verified: false
+  - id: kr-haeahn
+    name: { ko: "해안종합건축사사무소", en: "Haeahn Architecture" }
+    city: 서울
+    tier: large
+    hiring_types: [new_grad, intern]
+    eng_ok: unknown
+    verified: false
+  - id: kr-samoo
+    name: { ko: "삼우종합건축사사무소", en: "Samoo Architects & Engineers" }
+    city: 서울
+    tier: large
+    note: "삼성물산 계열. 공채 규모 큼, 한국어 요구 강할 것으로 추정"
+    hiring_types: [new_grad, intern]
+    eng_ok: unlikely
+    verified: false
+  - id: kr-kunwon
+    name: { ko: "종합건축사사무소 건원", en: "Kunwon Architects" }
+    city: 서울
+    tier: large
+    hiring_types: [new_grad]
+    eng_ok: unknown
+    verified: false
+  - id: kr-dagroup
+    name: { ko: "디에이그룹엔지니어링종합건축사사무소", en: "DAgroup" }
+    city: 서울
+    tier: large
+    hiring_types: [new_grad]
+    eng_ok: unknown
+    verified: false
+
+  # ── 아틀리에계 / 디자인 중심 (영어 가능성 높음) ──
+  - id: kr-101
+    name: { ko: "원오원 아키텍스", en: "ONE O ONE architects (101)" }
+    city: 서울
+    tier: atelier
+    note: "★ 사용자 직접 지목. 최욱. 소규모 — 상시채용/포트폴리오 심사 방식 추정"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-massstudies
+    name: { ko: "매스스터디스", en: "Mass Studies" }
+    city: 서울
+    tier: atelier
+    note: "조민석. 국제 프로젝트 다수, 외국인 스태프 이력 있음"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-iarc
+    name: { ko: "아이아크건축사사무소", en: "iArc Architects" }
+    city: 서울
+    tier: mid
+    eng_ok: likely
+    hiring_types: [year_round]
+    verified: false
+  - id: kr-wondoshi
+    name: { ko: "원도시건축", en: "Wondoshi Architects" }
+    city: 서울
+    tier: mid
+    eng_ok: unknown
+    hiring_types: [new_grad, year_round]
+    verified: false
+  - id: kr-unsangdong
+    name: { ko: "운생동건축사사무소", en: "Unsangdong Architects" }
+    city: 서울
+    tier: atelier
+    eng_ok: likely
+    hiring_types: [year_round]
+    verified: false
+
+  # ── 외국계 서울오피스 (★ 언어장벽 가장 낮음 — 최우선 검증) ──
+  - id: kr-kkaa-seoul
+    verified_ref: data/verified/kkaa.yaml   # 2026-09-06 검증 완료
+    name: { ko: "켄고쿠마 앤 어소시에이츠 서울", en: "Kengo Kuma & Associates — Seoul" }
+    careers_url: "https://kkaa.co.jp/en/recruit/architect-staff/"
+    fetch_note: "通年採用(상시). 마감일이 없어 변경 감지에 잘 안 걸린다"
+    city: 서울
+    tier: atelier
+    note: "★ 사용자 지목. 서울오피스 규모 작아 신입 상시채용 여부 불명확 — 최우선 확인 대상"
+    hiring_types: [unknown]
+    eng_ok: likely
+    verified: false
+    priority: high
+  - id: kr-gensler-seoul
+    name: { en: "Gensler — Seoul" }
+    city: 서울
+    tier: global
+    note: "서울오피스 존재 여부부터 확인 필요"
+    eng_ok: likely
+    verified: false
+  - id: kr-aedas-seoul
+    name: { en: "Aedas — Seoul" }
+    city: 서울
+    tier: global
+    note: "오피스 존재 여부 확인 필요"
+    eng_ok: likely
+    verified: false
+
+  # ── 전시/뮤지엄 디자인 (Jasmin의 G&A 경력과 직결) ──
+  - id: kr-sigongtech
+    name: { ko: "시공테크", en: "Sigongtech" }
+    city: 서울
+    tier: mid
+    note: "전시·뮤지엄 설계 전문. 후보자 exhibit design 경력 매치"
+    hiring_types: [new_grad]
+    eng_ok: unknown
+    verified: false
+
+  # ── 잡보드 검색 (개별 사무소 사이트가 SPA/404 라서 업계 전체를 여기서 훑는다) ──
+  - id: kr-board-saramin
+    name: { ko: "사람인 · 건축설계 검색", en: "Saramin — architecture search" }
+    careers_url: "https://www.saramin.co.kr/zf_user/search?searchType=search&searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84"
+    city: 서울
+    tier: job_board
+    hiring_types: [new_grad, intern, year_round]
+    eng_ok: unknown
+    verified: true
+  - id: kr-board-jobkorea
+    name: { ko: "잡코리아 · 건축설계 검색", en: "JobKorea — architecture search" }
+    careers_url: "https://www.jobkorea.co.kr/Search/?stext=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84"
+    city: 서울
+    tier: job_board
+    hiring_types: [new_grad, intern, year_round]
+    eng_ok: unknown
+    verified: true
+
+job_boards:
+  - { name: "사람인", url: "https://www.saramin.co.kr", note: "건축설계 키워드 검색" }
+  - { name: "잡코리아", url: "https://www.jobkorea.co.kr" }
+  - { name: "건축사협회 구인", url: "http://www.kira.or.kr" }

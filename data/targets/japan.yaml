@@ -1,0 +1,169 @@
+# 일본 — 추적 대상 (초안)
+# ★ 후보자 일본어 불가. eng_ok 가 사실상 1차 필터.
+country: JP
+offices:
+  # ── 조직설계사무소 대형 (新卒採用 있음. 단 일본어 필수 가능성 높음) ──
+  - id: jp-nikken
+    name: { ja: "日建設計", en: "Nikken Sekkei" }
+    careers_url: "https://www.nikken.jp/ja/career/"
+    city: 東京
+    tier: large
+    careers_url: "https://www.nikken.jp/ja/recruit/"
+    hiring_types: [shinsotsu, intern]
+    note: "국내 최대 조직설계. 海外部門 존재 — 유학생/외국인 전형 여부 확인"
+    eng_ok: partial
+    verified: false
+    priority: high
+  - id: jp-mjd
+    name: { ja: "三菱地所設計", en: "Mitsubishi Jisho Sekkei" }
+    city: 東京
+    tier: large
+    hiring_types: [shinsotsu, intern]
+    eng_ok: unlikely
+    verified: false
+  - id: jp-nihonsekkei
+    name: { ja: "日本設計", en: "Nihon Sekkei" }
+    careers_url: "https://www.nihonsekkei.co.jp/recruit/"
+    city: 東京
+    tier: large
+    hiring_types: [shinsotsu, intern]
+    eng_ok: unlikely
+    verified: false
+  - id: jp-kume
+    name: { ja: "久米設計", en: "Kume Sekkei" }
+    careers_url: "https://www.kumesekkei.co.jp/recruit/"
+    city: 東京
+    tier: large
+    hiring_types: [shinsotsu]
+    eng_ok: unlikely
+    verified: false
+  - id: jp-ishimoto
+    name: { ja: "石本建築事務所", en: "Ishimoto Architectural & Engineering Firm" }
+    careers_url: "https://www.ishimoto.co.jp/recruit/"
+    city: 東京
+    tier: large
+    hiring_types: [shinsotsu]
+    eng_ok: unknown
+    verified: false
+
+  # ── ゼネコン 設計部 (대규모 新卒. 일본어 필수 거의 확실) ──
+  - id: jp-takenaka
+    name: { ja: "竹中工務店 設計本部", en: "Takenaka Corporation — Design Dept" }
+    city: 東京
+    tier: large
+    hiring_types: [shinsotsu, intern]
+    eng_ok: unlikely
+    verified: false
+  - id: jp-obayashi
+    name: { ja: "大林組 設計本部", en: "Obayashi Corporation — Design" }
+    careers_url: "https://www.obayashi.co.jp/recruit/"
+    city: 東京
+    tier: large
+    hiring_types: [shinsotsu, intern]
+    eng_ok: unlikely
+    verified: false
+
+  # ── 아틀리에계 (★ 영어 가능성 높음 — 최우선 타겟) ──
+  - id: jp-kkaa-tokyo
+    verified_ref: data/verified/kkaa.yaml   # 2026-09-06 검증 완료
+    name: { ja: "隈研吾建築都市設計事務所", en: "Kengo Kuma & Associates — Tokyo" }
+    city: 東京
+    tier: atelier
+    note: "★ 사용자 지목. 도쿄는 전환형 인턴 트랙 있다고 알려짐 — 확인 대상. 외국인 스태프 비율 높음"
+    hiring_types: [intern_to_fulltime, year_round]
+    eng_ok: likely
+    verified: false
+    priority: high
+  - id: jp-soufujimoto
+    name: { ja: "藤本壮介建築設計事務所", en: "Sou Fujimoto Architects" }
+    city: 東京
+    tier: atelier
+    note: "외국인 스태프 다수. 영어 환경"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+    priority: high
+  - id: jp-sanaa
+    name: { ja: "SANAA / 妹島和世建築設計事務所", en: "SANAA" }
+    city: 東京
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: jp-nishizawa
+    name: { ja: "西沢立衛建築設計事務所", en: "Office of Ryue Nishizawa" }
+    city: 東京
+    tier: atelier
+    eng_ok: likely
+    hiring_types: [year_round]
+    verified: false
+  - id: jp-shigeruban
+    name: { ja: "坂茂建築設計", en: "Shigeru Ban Architects" }
+    careers_url: "https://shigerubanarchitects.com/"
+    city: 東京
+    tier: atelier
+    note: "국제 프로젝트 중심. 영어 환경 강함"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+    priority: high
+  - id: jp-toyoito
+    name: { ja: "伊東豊雄建築設計事務所", en: "Toyo Ito & Associates" }
+    city: 東京
+    tier: atelier
+    note: "대만 프로젝트 다수(台中歌劇院 등) — 중국어 강점 어필 가능"
+    hiring_types: [year_round]
+    eng_ok: likely
+    verified: false
+    priority: high
+  - id: jp-ando
+    name: { ja: "安藤忠雄建築研究所", en: "Tadao Ando Architect & Associates" }
+    city: 大阪
+    tier: atelier
+    eng_ok: unknown
+    hiring_types: [year_round]
+    verified: false
+  - id: jp-oh
+    name: { ja: "大西麻貴+百田有希 / o+h", en: "o+h" }
+    city: 東京
+    tier: atelier
+    eng_ok: unknown
+    hiring_types: [year_round]
+    verified: false
+  - id: jp-kda
+    name: { ja: "クライン ダイサム アーキテクツ", en: "Klein Dytham architecture" }
+    careers_url: "https://www.klein-dytham.com/jobs"
+    city: 東京
+    tier: atelier
+    note: "★ 영국인 창업. 사내 공용어 영어 — 일본어 불가 후보자에게 최적"
+    hiring_types: [year_round]
+    eng_ok: likely
+    verified: false
+    priority: high
+
+  # ── 전시/공간디자인 (후보자 exhibit design 경력 직결) ──
+  - id: jp-nomura
+    name: { ja: "乃村工藝社", en: "NOMURA Co., Ltd." }
+    careers_url: "https://www.nomurakougei.co.jp/recruit/"
+    city: 東京
+    tier: large
+    note: "★ 전시·뮤지엄 공간디자인 최대手. 후보자 G&A 경력과 정확히 매치"
+    hiring_types: [shinsotsu, intern]
+    eng_ok: unlikely
+    verified: false
+    priority: high
+  - id: jp-tanseisha
+    name: { ja: "丹青社", en: "TANSEISHA Co., Ltd." }
+    careers_url: "https://www.tanseisha.co.jp/recruit/"
+    city: 東京
+    tier: large
+    note: "전시·뮤지엄 공간디자인. 후보자 경력 매치"
+    hiring_types: [shinsotsu, intern]
+    eng_ok: unlikely
+    verified: false
+
+job_boards:
+  - { name: "リクナビ", url: "https://job.rikunabi.com", note: "新卒 전용" }
+  - { name: "マイナビ", url: "https://job.mynavi.jp", note: "新卒 전용" }
+  - { name: "建築転職 / 建築求人.jp", url: "https://kenchiku-kyujin.jp" }
+  - { name: "TOKYO ARCHITECTS", url: "https://www.japan-architects.com/ja/jobs" }

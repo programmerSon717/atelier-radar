@@ -1,0 +1,68 @@
+# 검증 완료 기록 — Kengo Kuma & Associates
+# 검증일: 2026-09-06 / 검증자: atelier-radar (수동 1차)
+# 이 파일 형식이 봇 워커의 출력 스키마 원형이 된다.
+
+office_group: kkaa
+offices: [jp-kkaa-tokyo, kr-kkaa-seoul]
+verified_at: "2026-09-06"
+
+sources:
+  - url: "https://kkaa.co.jp/en/recruit/architect-staff/"
+    label: "Architect Staff (정규직) 요건"
+  - url: "https://kkaa.co.jp/en/recruit/internship/"
+    label: "Internship 요건"
+  - url: "https://kkaa.co.jp/en/recruit-office/seoul/"
+    label: "Seoul 채용 카테고리"
+
+findings:
+  - id: kkaa-architect-staff
+    track: full_time
+    applies_to: [Tokyo, Beijing, Shanghai, Seoul]   # Paris는 별도 채용 시스템
+    new_grad_eligible: false
+    evidence: |
+      "Professional experiences as an active full time office architect
+       (not include internships and year-out experiences) in the international
+       field for a few years or more"
+    verdict: "★ 신입 지원 불가. 인턴 경력은 경력으로 인정하지 않는다고 명시."
+    language_requirements:
+      seoul: "한국어 유창(fluency in Korean) + 비즈니스 레벨 일본어/영어"
+      tokyo: "영어 유창 필수, 일본어·중국어 우대"
+    candidate_fit:
+      seoul: "불가 — 한국어 basic. 경력 0년."
+      tokyo: "불가 — 경력 0년 (졸업 후 몇 년 뒤 재검토 대상)"
+
+  - id: kkaa-internship
+    track: internship
+    offices: [Tokyo, Beijing, Shanghai, Seoul, Paris]
+    duration: "1~3개월 (full time)"
+    new_grad_eligible: true
+    evidence: |
+      "Master course students, MA degree holders or applicants with professional
+       experiences are preferred"
+      "The position is full time, for a period of 1 month up to 3 months."
+      "we cannot arrange visas for interns, and you must obtain these visas yourself"
+    language_requirements: "영어 유창 필수. 도쿄는 한국어/중국어/일본어 등 추가 언어 우대"
+    software_required: [modeling, AutoCAD, 3D Studio Max, Rhinoceros, Photoshop, Illustrator, InDesign, CG]
+    application: "PDF 포트폴리오 1MB 이내"
+    verdict: "지원 가능. 단 전환형(conversion) 아님 — 아래 주의 참조"
+    candidate_fit: |
+      자격 충족: Columbia M.Arch 재학 = "Master course students" 해당.
+      영어 유창 충족. Rhino/Photoshop/Illustrator/InDesign 보유.
+      갭: AutoCAD, 3ds Max 미보유 (이력서 기준) — 명시된 요구 소프트웨어.
+      리스크: 비자 본인 부담. 1~3개월 단기.
+
+# ─────────────────────────────────────────────
+critical_note: |
+  ★ "켄고쿠마 = 전환형 인턴" 이라는 전제는 공식 문서상 확인되지 않는다.
+
+  실제 구조:
+    - 인턴십은 1~3개월 단기이고, 비자도 본인이 알아서 받아야 한다.
+    - 정규직(Architect Staff)은 "몇 년 이상의 정규직 실무 경력"을 요구하면서
+      인턴 경력을 명시적으로 제외한다.
+    → 즉 인턴 → 정규직으로 이어지는 공식 경로가 문서상 존재하지 않는다.
+
+  서울오피스에 대해서도, 사용자가 걱정하던 "오피스가 작아서 신입을 뽑는지"
+  이전에 애초에 정규직 요건 자체가 경력직이고 한국어 유창을 요구한다.
+
+  비공식적으로 인턴이 채용되는 사례는 있을 수 있으나 근거 없음.
+  → 봇은 이런 경우 "확인 안 됨"으로 두고 추측을 출력하지 않는다.

@@ -1,0 +1,46 @@
+# ─── 비용 3단 구조 ───
+# 채용 정보는 초 단위로 안 바뀐다. 그래서 매 주기마다 LLM을 돌리지 않는다.
+#   tier1 watch   : 채용페이지 HTTP GET → 텍스트 해시 비교. LLM 안 씀 = $0
+#   tier2 extract : 해시가 바뀐 오피스의 페이지 텍스트만 Gemini 로 구조화
+#   tier3 sweep   : 주 1회 전체 훑기 (해시 무시하고 전부 추출)
+
+# 무료 티어 한도는 **모델마다 따로** 걸린다 (모델당 하루 20회 수준).
+# 앞에서부터 쓰다가 그 모델이 오늘치를 다 쓰면 다음 모델로 자동 전환한다.
+# 12개 × 20회 ≈ 하루 240회. 평소 필요량(0~5회)과 주간 스윕(43회)에 충분하다.
+model: gemini-3.1-flash-lite      # 기본
+models:
+  # lite 계열 먼저 — 추출 작업엔 충분하고 한도가 넉넉하다
+  - gemini-3.1-flash-lite
+  - gemini-3.5-flash-lite
+  - gemini-flash-lite-latest
+  - gemini-3.1-flash-lite-preview
+  - gemini-2.5-flash-lite
+  # 그다음 일반 flash
+  - gemini-3-flash-preview
+  - gemini-3.8-flash
+  - gemini-3.7-flash
+  - gemini-3.6-flash
+  - gemini-3.5-flash
+  - gemini-flash-latest
+  - gemini-2.5-flash
+
+watch:
+  interval_minutes: 30
+  timeout_seconds: 20
+  max_parallel: 12        # HTTP 동시 요청 수
+
+research:
+  max_parallel: 2              # Gemini 동시 호출 수
+  min_seconds_between_calls: 6 # 무료 티어 분당 한도(429) 회피용 간격
+  max_retries: 3               # 429/503 은 기다리면 대개 풀린다
+  retry_base_seconds: 8
+
+sweep:
+  weekday: 0              # 0=월요일
+  hour: 9                 # 로컬 시각
+
+locale: ko                # ko | zh_TW
+
+# 후보자와 안 맞아도 일단 수집은 하고 라벨만 붙인다 (사용자 선택: B안)
+filter:
+  drop_mismatches: false

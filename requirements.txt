@@ -1,0 +1,6 @@
+google-genai>=1.0.0
+httpx2
+pydantic>=2
+PyYAML
+python-dotenv
+selectolax
