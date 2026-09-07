@@ -2,8 +2,8 @@ name: atelier-radar
 
 on:
   schedule:
-    # 30분마다 변경 감지 (UTC). GitHub Actions cron 은 정확하지 않고 몇 분 밀릴 수 있다.
-    - cron: "*/30 * * * *"
+    # 10분마다 변경 감지. Actions cron 은 정확하지 않아 몇 분씩 밀린다.
+    - cron: "*/10 * * * *"
     # 매주 월요일 00:00 UTC = 한국/일본 09:00 — 전체 훑기
     - cron: "0 0 * * 1"
   workflow_dispatch:        # 수동 실행 버튼

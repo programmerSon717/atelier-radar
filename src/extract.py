@@ -60,10 +60,21 @@ SYSTEM = """\
 6. requires_japanese / requires_korean 은 페이지에 언어 조건이 명시된 경우만 채운다.
    영어로 대체 가능하면 false. 언급이 없으면 null.
 
+## ★ 외국인 지원 가능 여부 — 이 후보자는 대만 국적이라 이게 가장 중요하다
+공고 전체를 훑어서 외국인·유학생·비자·국적·해외인재에 대한 언급을 찾아라.
+- 언급이 조금이라도 있으면 foreigner_mentioned=true, 그 문장을 foreigner_evidence 에 그대로 인용.
+- 지원 가능하다고 적혀 있으면 foreigner_eligible=true.
+- "내국인에 한함", "병역필", "비자 지원 불가" 처럼 배제가 적혀 있으면 false.
+- **아무 언급이 없으면 null 이다.** 없는 걸 있다고 하거나, 없다고 단정하지 마라.
+  한국·일본 공고 대부분은 언급이 없다. 그게 정상이고, null 이 정답이다.
+
 ## JD 본문 채우기
 responsibilities / qualifications / preferred / software / salary / employment_type / process
 는 **공고에 적혀 있으면 반드시 채운다.** 요약만 하고 넘어가지 마라.
-- 목록 항목은 원문을 압축해서 한 줄씩. 미사여구는 빼고 실제 내용만.
+- **원문의 정보를 지우지 마라.** 요약이 아니라 옮겨 적는 것이다.
+  구체적인 수치·기간·조건·도구 이름·직무명은 하나도 빠뜨리지 말고 그대로 남겨라.
+  "다양한 업무 수행" 같이 뭉뚱그리지 말고 원문이 나열한 항목을 그대로 나열해라.
+- 항목이 많으면 많은 대로 다 적어라. 억지로 줄이지 마라.
 - 페이지에 없는 항목은 빈 배열이나 null 로 둔다. 지어내지 마라.
 - software 는 공고에 실제로 이름이 나온 것만 (Revit, Rhino, AutoCAD, SketchUp, 3ds Max 등).
 

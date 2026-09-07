@@ -14,6 +14,7 @@ from datetime import date
 from dotenv import load_dotenv
 
 from . import notify, store
+from . import eligibility
 from .match import assess
 from .scope import in_scope
 from .render import load_locale, render_posting, render_summary
@@ -96,7 +97,8 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
             if store.already_sent(conn, key):
                 continue
             a = assess(p, office.country, office)
-            text = render_posting(p, office, a, L)
+            elig = eligibility.judge(p, office.country)
+            text = render_posting(p, office, a, L, elig)
             if dry_run:
                 print("\n" + "─" * 60 + "\n" + text)
             else:

@@ -48,18 +48,33 @@ class Posting(BaseModel):
     visa_sponsorship: Optional[bool] = Field(
         default=None, description="취업비자 스폰서 여부. 명시 안 됐으면 null"
     )
+    # ── 외국인 지원 가능 여부: 이 후보자에게 가장 중요한 항목 ──
+    foreigner_mentioned: bool = Field(
+        default=False,
+        description="공고에 외국인/유학생/비자/국적에 대한 언급이 **조금이라도** 있으면 true",
+    )
+    foreigner_eligible: Optional[bool] = Field(
+        default=None,
+        description="외국인이 지원 가능한가. true=가능하다고 적혀 있음, "
+                    "false=내국인만/비자 불가라고 적혀 있음, null=공고에 언급 없음. "
+                    "언급이 없으면 반드시 null 로 둔다 — 추측 금지",
+    )
+    foreigner_evidence: Optional[str] = Field(
+        default=None,
+        description="위 판단의 근거가 된 공고 원문 문장. 짧게 그대로 인용. 없으면 null",
+    )
 
     # ── JD 본문 ──
     responsibilities: list[str] = Field(
         default_factory=list,
-        description="담당 업무. 공고에 적힌 것만, 각 항목 한 줄로. 최대 6개. 없으면 빈 배열",
+        description="담당 업무. 원문을 압축하지 말고 그대로 옮긴다. 최대 12개. 없으면 빈 배열",
     )
     qualifications: list[str] = Field(
         default_factory=list,
-        description="자격 요건(필수). 공고에 적힌 것만. 최대 6개",
+        description="자격 요건(필수). 원문 그대로, 수치·조건을 빠뜨리지 않는다. 최대 12개",
     )
     preferred: list[str] = Field(
-        default_factory=list, description="우대 사항. 공고에 적힌 것만. 최대 5개"
+        default_factory=list, description="우대 사항. 원문 그대로. 최대 10개"
     )
     software: list[str] = Field(
         default_factory=list,

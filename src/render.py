@@ -35,55 +35,88 @@ def _bullets(items: list[str], limit: int) -> str:
     return "\n".join(f"  • {_esc(x)}" for x in items[:limit])
 
 
-def render_posting(p: Posting, office: Office, a: Assessment, L: dict) -> str:
-    icon = VERDICT_ICON[a.verdict]
-    track = L["track_label"].get(p.track, p.track)
+COUNTRY_FLAG = {"KR": "🇰🇷", "JP": "🇯🇵", "TW": "🇹🇼"}
+
+
+def _bul(items, limit):
+    return "\n".join(f"• {_esc(x)}" for x in items[:limit])
+
+
+def _tags(p: Posting, office: Office, elig) -> str:
+    """해시태그 — 나중에 텔레그램 검색으로 되찾을 수 있게."""
+    # 해시태그에 이모지를 쓰면 텔레그램이 태그로 인식하지 않는다
+    out = [{"KR": "한국", "JP": "일본", "TW": "대만"}.get(office.country, office.country)]
+    t = {"new_grad": "신입공채", "intern": "인턴", "intern_to_fulltime": "전환형인턴",
+         "entry_level": "신입", "year_round": "상시채용"}.get(p.track)
+    if t:
+        out.append(t)
+    out.append({"open": "지원가능", "ask": "문의필요",
+                "native": "언어장벽", "closed": "지원불가"}[elig.gate])
+    for sw in p.software[:3]:
+        out.append(sw.replace(" ", ""))
+    return " ".join(f"#{x}" for x in dict.fromkeys(out) if x)
+
+
+def render_posting(p: Posting, office: Office, a: Assessment, L: dict, elig=None) -> str:
+    """텔레그램 메시지. 섹션 이모지 + 인용구로 훑기 쉽게 나눈다."""
+    from . import eligibility as _el
+    elig = elig or _el.judge(p, office.country)
+
     who = p.company or office.display_name
     where = p.location or office.city or office.country
+    track = L["track_label"].get(p.track, p.track)
+    flag = COUNTRY_FLAG.get(office.country, "🏛")
 
     out = [
-        f"{icon} <b>{_esc(p.title)}</b>",
-        f"<b>{_esc(who)}</b> · {_esc(where)}",
-        f"<code>{_esc(track)}</code>  <b>{_esc(L['verdict'][a.verdict])}</b>",
+        f"{flag} <b>{_esc(who)}</b>",
+        f"🏛 <b>{_esc(p.title)}</b>",
+        "",
+        # ── 가장 먼저 보여야 할 것: 애초에 지원이 되는가 ──
+        f"{elig.icon} <b>{_esc(elig.label(L.get('_locale', 'ko')))}</b>",
     ]
+    if elig.evidence:
+        out.append(f"<blockquote>{_esc(elig.evidence)}</blockquote>")
+    else:
+        out.append(f"<i>{_esc(elig.reason)}</i>")
+    if elig.action:
+        out.append(f"👉 {_esc(elig.action)}")
+
+    out += ["", f"📍 {_esc(where)}   ·   <code>{_esc(track)}</code>"]
+    if p.deadline:
+        out.append(f"{'⏰' if a.expired else '🗓'} <b>{L['deadline']} {_esc(p.deadline)}</b>")
 
     if p.summary:
         out += ["", f"<blockquote>{_esc(p.summary)}</blockquote>"]
 
-    # ── 판정 근거 ── 막는 것부터 위로
-    if a.labels:
-        out += ["", *[f"{_esc(x)}" for x in _sort_labels(a.labels)]]
-
-    # ── JD 본문 ──
     if p.responsibilities:
-        out += ["", f"<b>📋 {L['responsibilities']}</b>", _bullets(p.responsibilities, 6)]
+        out += ["", f"📋 <b>{L['responsibilities']}</b>",
+                f"<blockquote>{_bul(p.responsibilities, 10)}</blockquote>"]
     if p.qualifications:
-        out += ["", f"<b>✔️ {L['qualifications']}</b>", _bullets(p.qualifications, 6)]
+        out += ["", f"✔️ <b>{L['qualifications']}</b>",
+                f"<blockquote>{_bul(p.qualifications, 10)}</blockquote>"]
     if p.preferred:
-        out += ["", f"<b>➕ {L['preferred']}</b>", _bullets(p.preferred, 5)]
+        out += ["", f"➕ <b>{L['preferred']}</b>",
+                f"<blockquote>{_bul(p.preferred, 8)}</blockquote>"]
     if p.software:
-        out += ["", f"<b>🖥 {L['software']}</b>  <code>{_esc(' · '.join(p.software[:10]))}</code>"]
+        out += ["", f"🖥 <b>{L['software']}</b>",
+                f"<code>{_esc(' · '.join(p.software[:12]))}</code>"]
 
-    # ── 조건 한 줄 요약 ──
-    facts = []
-    if p.employment_type:
-        facts.append(f"{L['employment']}: {_esc(p.employment_type)}")
-    if p.salary:
-        facts.append(f"{L['salary']}: {_esc(p.salary)}")
-    if p.process:
-        facts.append(f"{L['process']}: {_esc(p.process)}")
+    facts = [(L["employment"], p.employment_type), (L["salary"], p.salary),
+             (L["process"], p.process), (L["language"], p.language_required)]
+    facts = [f"• {k}: {_esc(v)}" for k, v in facts if v]
     if facts:
-        out += ["", *[f"· {f}" for f in facts]]
+        out += ["", f"📄 <b>조건</b>", *facts]
 
-    if p.deadline:
-        mark = "⏰" if a.expired else "🗓"
-        out += ["", f"{mark} <b>{L['deadline']} {_esc(p.deadline)}</b>"]
+    # 판정 근거 — 막는 것만 짧게. 나머지는 웹에서 본다.
+    hard = [l for l in a.labels if l[:2].strip() in ("🔴", "⛔️", "⏰", "🏗", "🔧")]
+    if hard:
+        out += ["", "⚠️ " + "\n⚠️ ".join(_esc(x) for x in hard[:4])]
 
     if p.notes:
-        out += ["", f"<i>{_esc(L['unresolved'])}: {_esc(p.notes)}</i>"]
+        out += ["", f"❓ <i>{_esc(L['unresolved'])}: {_esc(p.notes)}</i>"]
 
-    # href 는 속성값이라 따옴표까지 막아야 한다. 안 그러면 텔레그램이 400 으로 통째로 거부한다.
-    out += ["", f'<a href="{html.escape(p.source_url, quote=True)}">{L["source"]} →</a>']
+    out += ["", f'🔗 <a href="{html.escape(p.source_url, quote=True)}">{L["source"]}</a>',
+            "", _tags(p, office, elig)]
     return "\n".join(out)
 
 
