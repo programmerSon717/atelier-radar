@@ -38,6 +38,17 @@ DETAIL_HINT = re.compile(
 SKIP_LINK = re.compile(r"\.(pdf|jpe?g|png|gif|zip|docx?|xlsx?)(?:[?#]|$)|^(mailto|tel|javascript):", re.I)
 
 MAX_FOLLOW = 5        # 랜딩 1개당 따라갈 하위 페이지 수 상한
+MAX_IMAGES = 3        # 공고 1건당 모델에 넘길 본문 이미지 수
+MIN_IMAGE_BYTES = 40_000   # 로고·아이콘을 거르는 하한
+THIN_SHELL = 6_000         # 이보다 얇고 이미지·iframe 도 없으면 JS 껍데기로 본다
+
+# 한국 대기업 공고는 지원자격을 **이미지로** 넣는다. 텍스트만 긁으면 학력·어학·
+# 국적 조건을 통째로 못 본다. 현대건설이 그랬다 — iframe 안에 이미지 한 장이 전부였다.
+CONTENT_IMG = re.compile(
+    r"file\d*\.jobkorea\.co\.kr/Mng/|saramin\.co\.kr/.*(?:recruit|user_files)|"
+    r"vmspace\.com/.*upload|/recruit.*\.(?:jpe?g|png)|\.(?:jpe?g|png)$", re.I)
+SKIP_IMG = re.compile(r"logo|icon|banner|btn|sprite|ads?\.|facebook|criteo|adnxs|"
+                      r"tracking|pixel|blank|spacer", re.I)
 MAX_BOARD_FOLLOW = 12  # 잡보드 목록에서 열어볼 개별 공고 수
 
 # 잡보드의 개별 공고 상세 주소 패턴. 목록 페이지만 읽으면 JD 본문이 통째로 빠진다.
@@ -98,6 +109,24 @@ def find_detail_links(html: str, base_url: str) -> list[str]:
     return list(seen)
 
 
+def find_content_images(html: str, base_url: str) -> list[str]:
+    """공고 본문 이미지 주소를 고른다. 로고·광고·추적 픽셀은 뺀다."""
+    tree = HTMLParser(html)
+    out: dict[str, None] = {}
+    for img in tree.css("img"):
+        src = (img.attributes or {}).get("src") or (img.attributes or {}).get("data-src") or ""
+        if not src:
+            continue
+        url = urljoin(base_url, src)
+        if not url.startswith("http") or SKIP_IMG.search(url):
+            continue
+        if CONTENT_IMG.search(url):
+            out.setdefault(url, None)
+        if len(out) >= MAX_IMAGES * 2:
+            break
+    return list(out)
+
+
 def extract_text_with_links(html: str, base_url: str) -> str:
     """잡보드용. 링크 글자 옆에 실제 주소를 붙여서 넘긴다.
 
@@ -130,6 +159,20 @@ def extract_text(html: str) -> str:
     return " ".join(text.split())
 
 
+# JobKorea 는 공고 본문을 iframe 에 넣는다. 본체만 읽으면 25자짜리 껍데기를 읽게 된다.
+IFRAME_BODY = re.compile(r"GI_Read_Comt_Ifrm|user_content|jobDetail", re.I)
+
+
+def find_body_iframes(html: str, base_url: str) -> list[str]:
+    tree = HTMLParser(html)
+    out: dict[str, None] = {}
+    for f in tree.css("iframe"):
+        src = (f.attributes or {}).get("src") or ""
+        if src and IFRAME_BODY.search(src):
+            out.setdefault(urljoin(base_url, src), None)
+    return list(out)
+
+
 async def fetch_one(
     client: httpx.AsyncClient, office: Office, follow: bool = True
 ) -> tuple[Office, str | None, str | None]:
@@ -149,9 +192,15 @@ async def fetch_one(
         text = (extract_text_with_links(html, str(r.url)) if is_board
                 else extract_text(html))
 
-        # 본문이 비면 JS 로 그리는 페이지다. 브라우저로 한 번 더 시도한다.
-        # (한국 *.recruiter.co.kr ATS, 대만 사무소 자사 사이트가 대부분 여기 해당)
-        if len(text) < 200:
+        # 본문이 비거나 얄팍하면 JS 로 그리는 페이지다. 브라우저로 한 번 더 읽는다.
+        # (한국 *.recruiter.co.kr ATS, 대만 사무소 자사 사이트, 그리고 공고 본문을
+        #  iframe·이미지로 넣는 JobKorea 대기업 공고가 여기 해당한다)
+        thin = len(text) < 200
+        maybe_shell = (len(text) < THIN_SHELL
+                       and not find_content_images(html, str(r.url))
+                       and not find_body_iframes(html, str(r.url)))
+        rendered = None
+        if thin or maybe_shell:
             rendered, rerr = await asyncio.to_thread(render_js.render, str(r.url))
             if rendered:
                 html = rendered
@@ -159,6 +208,20 @@ async def fetch_one(
                         else extract_text(html))
             if len(text) < 200:
                 return office, None, f"본문 부족(JS 렌더링{'' if rendered else ' 실패: ' + (rerr or '')})"
+
+        images: list[str] = list(find_content_images(html, str(r.url)))
+
+        # 이 페이지 자체가 공고일 수도 있다. 본문 iframe 이 있으면 그것도 읽는다
+        # (JobKorea 는 공고 본문을 iframe 에 넣어서, 본체만 읽으면 껍데기를 읽게 된다)
+        for fr in find_body_iframes(html, str(r.url))[:2]:
+            try:
+                fr_r = await client.get(fr, follow_redirects=True)
+                fr_text = extract_text(fr_r.text)
+                images.extend(find_content_images(fr_r.text, fr))
+                if len(fr_text) > 60:
+                    text += f"\n\n[PAGE] {fr}\n{fr_text}"
+            except Exception:
+                pass
 
         if follow:
             parts = [f"[PAGE] {url}\n{text}"]
@@ -170,12 +233,28 @@ async def fetch_one(
                     sub = await client.get(link, follow_redirects=True)
                     if sub.status_code >= 400:
                         continue
-                    sub_text = extract_text(sub.text)
+                    sub_html = sub.text
+                    sub_text = extract_text(sub_html)
+                    # 본문이 iframe 에 있으면 그것까지 읽는다
+                    for fr in find_body_iframes(sub_html, link)[:2]:
+                        try:
+                            fr_r = await client.get(fr, follow_redirects=True)
+                            fr_text = extract_text(fr_r.text)
+                            if len(fr_text) > len(sub_text):
+                                sub_text = fr_text
+                            images.extend(find_content_images(fr_r.text, fr))
+                        except Exception:
+                            pass
+                    images.extend(find_content_images(sub_html, link))
                     if len(sub_text) >= 150:
                         parts.append(f"[PAGE] {link}\n{sub_text}")
                 except Exception:
                     continue  # 하위 페이지 실패는 무시 — 랜딩만으로도 진행한다
             text = "\n\n".join(parts)
+        # 이미지 주소를 본문 끝에 실어 보낸다 (추출기가 비전으로 읽는다)
+        if images:
+            uniq = list(dict.fromkeys(images))[:MAX_IMAGES]
+            text += "\n\n[IMAGES]\n" + "\n".join(uniq)
         return office, text, None
     except Exception as e:  # 네트워크/타임아웃/파싱 전부
         return office, None, f"{type(e).__name__}: {e}"

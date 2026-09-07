@@ -7,6 +7,7 @@
 import asyncio
 import os
 import random
+import re
 import time
 from datetime import date
 from typing import Any, Optional
@@ -76,7 +77,12 @@ SYSTEM = """\
 - TOPIK / 한국어능력시험 / JLPT / 日本語能力試験 + 급수
 하나라도 찾으면 foreigner_mentioned=true 로 두고 그 문장을 그대로 인용해라.
 
-### ★★ 출신 대학 소재지 요건 (domestic_degree_required) — 가장 먼저 확인할 것
+### ★ 이미지가 함께 올 수 있다
+한국 대기업 공고는 지원자격을 **이미지(채용 포스터)로만** 싣는 경우가 많다.
+이미지가 주어지면 반드시 읽어라. 학력·어학·국적·비자 조건이 거기에만 있다.
+이미지에서 읽은 내용도 페이지 원문과 똑같이 취급한다 (인용해도 된다).
+
+## ★★ 출신 대학 소재지 요건 (domestic_degree_required) — 가장 먼저 확인할 것
 지원자격 항목을 반드시 읽고 **어느 나라 대학을 나와야 하는지** 확인해라.
 한국 대기업 공고에는 이런 문구가 흔하다:
   "국내 정규 4년제 대학(이상) 졸업자 및 2027년 2월 졸업예정자"
@@ -203,6 +209,40 @@ def _models(cfg: dict) -> list[str]:
     return [x for x in m if x not in _exhausted] or [m[0]]
 
 
+IMG_BLOCK = re.compile(r"\n\n\[IMAGES\]\n(.+)$", re.S)
+MAX_IMG_BYTES = 4_000_000   # 너무 큰 이미지는 건너뛴다
+
+
+def split_images(page_text: str) -> tuple[str, list[str]]:
+    """본문 끝에 실려온 이미지 주소를 떼어낸다."""
+    m = IMG_BLOCK.search(page_text)
+    if not m:
+        return page_text, []
+    urls = [u.strip() for u in m.group(1).splitlines() if u.strip().startswith("http")]
+    return page_text[:m.start()], urls
+
+
+def fetch_images(urls: list[str]) -> list[tuple[bytes, str]]:
+    """이미지를 받아 (바이트, MIME) 로 돌려준다. 실패는 조용히 건너뛴다."""
+    import httpx2 as httpx
+
+    out = []
+    with httpx.Client(headers={"User-Agent": "Mozilla/5.0"}, timeout=30,
+                      follow_redirects=True) as c:
+        for u in urls:
+            try:
+                r = c.get(u)
+                if r.status_code >= 400 or len(r.content) > MAX_IMG_BYTES:
+                    continue
+                mime = r.headers.get("content-type", "").split(";")[0]
+                if not mime.startswith("image/"):
+                    continue
+                out.append((r.content, mime))
+            except Exception:
+                continue
+    return out
+
+
 def _client() -> genai.Client:
     key = os.environ.get("GEMINI_API_KEY")
     if not key:
@@ -214,6 +254,7 @@ def extract_one(
     client: genai.Client, office: Office, url: str, page_text: str, cfg: dict[str, Any]
 ) -> tuple[str, Optional[OfficeReport], Optional[str]]:
     """한 오피스의 페이지 텍스트 → OfficeReport. 실패해도 예외를 밖으로 내보내지 않는다."""
+    page_text, image_urls = split_images(page_text)
     prompt = USER.format(
         office_id=office.id,
         name=" / ".join(office.name.values()) or office.id,
@@ -225,6 +266,12 @@ def extract_one(
         board_note=(BOARD_NOTE if office.tier == "job_board"
                     else GLOBAL_NOTE if office.tier == "global" else ""),
     )
+    # 공고 포스터 이미지를 같이 넘긴다 — 텍스트에 없는 지원자격이 거기 있다
+    contents: list = [prompt]
+    if image_urls:
+        for data, mime in fetch_images(image_urls):
+            contents.append(types.Part.from_bytes(data=data, mime_type=mime))
+
     rcfg = cfg["research"]
     attempts = rcfg.get("max_retries", 3)
     resp = None
@@ -236,7 +283,7 @@ def extract_one(
         try:
             resp = client.models.generate_content(
                 model=model_name,
-                contents=prompt,
+                contents=contents,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM.format(out_lang=OUT_LANG[cfg.get("locale", "ko")]),
                     response_mime_type="application/json",

@@ -75,6 +75,7 @@ table{border-collapse:collapse;width:100%;font-size:13.5px}
 .chip{font-family:var(--f-mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;
   padding:5px 11px;border:1px solid var(--hair);background:var(--sheet);color:var(--graphite);
   cursor:pointer;border-radius:0}
+#clear{border-color:var(--redline);color:var(--redline)}
 .chip[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--tint)}
 .chip:focus-visible{outline:2px solid var(--redline);outline-offset:1px}
 input[type=search]{font:inherit;font-size:13px;padding:5px 10px;border:1px solid var(--hair);
@@ -183,6 +184,7 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--hair);
       <button class="chip" data-v="past" aria-pressed="false">지난 공고</button>
     </div>
     <input type="search" id="q" placeholder="회사·직무 검색" aria-label="검색">
+    <button class="chip" id="clear" hidden>✕ 필터 해제</button>
     <span class="count" id="count"></span>
   </div>
 

@@ -94,6 +94,7 @@ function render() {
   document.querySelector('.chip[data-v="live"]').textContent = `진행중 ${live}`;
   document.querySelector('.chip[data-v="past"]').textContent = `지난 공고 ${past}`;
   document.getElementById("count").textContent = `${list.length}건 표시`;
+  syncClearButton();
   // 지난 공고 탭에서는 아카이브(가벼운 과거 기록)도 같이 보여준다
   if (state.view === "past") {
     const q2 = state.q.trim().toLowerCase();
@@ -109,6 +110,7 @@ function render() {
     list.sort((a, b) => String(b.deadline || b.posted_at || "")
       .localeCompare(String(a.deadline || a.posted_at || "")));
     document.getElementById("count").textContent = `${list.length}건 표시`;
+  syncClearButton();
   }
 
   const rowsEl = document.getElementById("rows");
@@ -216,7 +218,20 @@ function row(p) {
     </div></article>`;
 }
 
+function syncClearButton() {
+  const on = state.country !== "all" || state.gates.size > 0 || state.q.trim() !== "";
+  const el = document.getElementById("clear");
+  if (el) el.hidden = !on;
+}
+
 function bind() {
+  document.getElementById("clear").addEventListener("click", () => {
+    state.country = "all"; state.gates.clear(); state.q = "";
+    document.getElementById("q").value = "";
+    document.querySelectorAll(".chip[data-c]").forEach(x =>
+      x.setAttribute("aria-pressed", String(x.dataset.c === "all")));
+    render();
+  });
   document.getElementById("gates").addEventListener("click", e => {
     const b = e.target.closest(".gate"); if (!b) return;
     const k = b.dataset.g;
@@ -224,12 +239,14 @@ function bind() {
     render();
   });
   document.querySelectorAll(".chip[data-c]").forEach(b => b.addEventListener("click", () => {
-    state.country = b.dataset.c;
+    // 켠 걸 다시 누르면 꺼진다 — 켜기만 되고 못 끄면 손이 막힌다
+    state.country = (state.country === b.dataset.c) ? "all" : b.dataset.c;
     document.querySelectorAll(".chip[data-c]").forEach(x =>
-      x.setAttribute("aria-pressed", String(x === b)));
+      x.setAttribute("aria-pressed", String(x.dataset.c === state.country)));
     render();
   }));
   document.querySelectorAll(".chip[data-v]").forEach(b => b.addEventListener("click", () => {
+    if (state.view === b.dataset.v) return;   // 진행중/지난은 둘 중 하나는 켜져 있어야 한다
     state.view = b.dataset.v;
     document.querySelectorAll(".chip[data-v]").forEach(x =>
       x.setAttribute("aria-pressed", String(x === b)));
