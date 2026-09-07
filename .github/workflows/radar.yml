@@ -19,7 +19,9 @@ on:
 
 concurrency:
   group: radar              # 이전 실행이 아직 돌면 겹치지 않게
-  cancel-in-progress: false
+  # 다만 코드를 고쳐 올린 경우에는 돌던 수집을 끊고 먼저 배포한다.
+  # 수집이 20분 걸리는 동안 고친 판정이 사이트에 못 올라가는 일이 실제로 있었다.
+  cancel-in-progress: ${{ github.event_name == 'push' }}
 
 permissions:
   contents: read
@@ -42,6 +44,7 @@ jobs:
 
       # JS 로 그리는 채용페이지(한국 ATS, 대만 사무소)를 읽으려면 실제 브라우저가 필요하다
       - name: 브라우저 설치
+        if: github.event_name != 'push'      # 수집을 안 하면 브라우저도 필요 없다 (2분 절약)
         run: python -m playwright install --with-deps chromium
 
       # 이미 보낸 공고를 기억해야 같은 걸 두 번 안 보낸다.
@@ -54,7 +57,10 @@ jobs:
           restore-keys: |
             radar-store-
 
+      # 판정·화면 코드를 고친 배포는 수집이 필요 없다. 저장분을 그대로 다시 그리면 된다.
+      # 새 공고를 찾는 건 cron 과 주간 스윕의 몫이다.
       - name: 실행
+        if: github.event_name != 'push'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

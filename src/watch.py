@@ -69,7 +69,7 @@ BOARD_HOST = re.compile(r"jobkorea|saramin|albamon|incruit|518\.com\.tw|104\.com
 JUNK_HOST = re.compile(r"facebook|instagram|youtube|kakao|google|twitter|x\.com|"
                        r"apple\.com|microsoft|adobe|criteo|doubleclick", re.I)
 # 회사 사이트까지 따라가는 건 브라우저를 띄우는 일이라 비싸다. 실행당 상한을 둔다.
-MAX_COMPANY_FOLLOW = 6
+MAX_COMPANY_FOLLOW = 3   # 브라우저를 띄우는 일이라 비싸다. 실행이 20분을 넘겼었다
 # 상세가 이 말들을 하고 있으면 자격요건이 회사 사이트에 있다는 뜻이다
 NEEDS_COMPANY_PAGE = re.compile(r"상세\s*요강|홈페이지\s*지원|자사\s*홈페이지|채용\s*홈페이지|"
                                 r"자세한\s*사항은|공고\s*참고", re.I)
@@ -313,7 +313,7 @@ async def fetch_one(
                             NEEDS_COMPANY_PAGE.search(sub_text) or len(sub_text) < 1500):
                         for capp in find_company_apply_links(sub_html, link):
                             company_left -= 1
-                            c_html, _ = await asyncio.to_thread(render_js.render, capp)
+                            c_html, _ = await asyncio.to_thread(render_js.render, capp, 20_000)
                             if not c_html:
                                 continue
                             c_text = extract_text(c_html)
