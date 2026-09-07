@@ -46,7 +46,7 @@ findings:
     application: "PDF 포트폴리오 1MB 이내"
     verdict: "지원 가능. 단 전환형(conversion) 아님 — 아래 주의 참조"
     candidate_fit: |
-      자격 충족: Columbia M.Arch 재학 = "Master course students" 해당.
+      자격 충족: M.Arch 재학 = "Master course students" 해당.
       영어 유창 충족. Rhino/Photoshop/Illustrator/InDesign 보유.
       갭: AutoCAD, 3ds Max 미보유 (이력서 기준) — 명시된 요구 소프트웨어.
       리스크: 비자 본인 부담. 1~3개월 단기.

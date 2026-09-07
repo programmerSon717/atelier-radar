@@ -118,9 +118,9 @@ BODY = f'''<div class="sheet">
     <h1>Atelier Radar</h1>
     <p class="sub">일본 · 한국 · 대만 건축설계 신입공채 및 인턴 추적</p>
   </div>
-  <div class="tb"><span class="mark">대상</span>
-    <div class="val" style="font-size:14px">Jasmin (Jia-Chen) Lin</div>
-    <div class="sub" style="font-size:12.5px">Columbia GSAPP M.Arch · 2027.05 졸업</div></div>
+  <div class="tb"><span class="mark">대상 조건</span>
+    <div class="val" style="font-size:14px">M.Arch · 2027.05 졸업</div>
+    <div class="sub" style="font-size:12.5px">대만 국적 · 경력 0년 · 일본어 불가</div></div>
   <div class="tb"><span class="mark">추적 사무소</span>
     <div class="val">{tracked}<small> / {len(offs)}</small></div></div>
   <div class="tb"><span class="mark">수집 공고</span>

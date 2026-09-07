@@ -126,7 +126,7 @@ offices:
     eng_ok: likely
     verified: false
 
-  # ── 전시/뮤지엄 디자인 (Jasmin의 G&A 경력과 직결) ──
+  # ── 전시/뮤지엄 디자인 (후보자 전시디자인 경력과 직결) ──
   - id: kr-sigongtech
     name: { ko: "시공테크", en: "Sigongtech" }
     city: 서울
