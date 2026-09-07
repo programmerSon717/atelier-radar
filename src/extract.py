@@ -204,6 +204,13 @@ def _is_daily_quota(e: Exception) -> bool:
     return "PerDay" in s or "per day" in s.lower()
 
 
+def _is_dead_model(e: Exception) -> bool:
+    """없는 모델·권한 없는 모델. 재시도해도 소용없으니 즉시 다음으로 넘어간다.
+    이걸 재시도 대상으로 두면 죽은 모델 하나가 체인 앞을 막아 전체가 실패한다."""
+    s = str(e)
+    return "404" in s or "NOT_FOUND" in s or "PERMISSION_DENIED" in s
+
+
 def _models(cfg: dict) -> list[str]:
     m = cfg.get("models") or [cfg["model"]]
     return [x for x in m if x not in _exhausted] or [m[0]]
@@ -293,9 +300,10 @@ def extract_one(
             )
             break
         except Exception as e:
-            if _is_daily_quota(e):
-                # 이 모델은 오늘 끝. 재시도해도 소용없으니 다음 모델로.
+            if _is_daily_quota(e) or _is_dead_model(e):
+                # 오늘 한도를 다 썼거나 아예 없는 모델이다. 다음 모델로 넘어간다.
                 _exhausted.add(model_name)
+                last_err = f"{type(e).__name__}: {str(e)[:100]}"
                 resp = None
                 break
             if attempt < attempts - 1 and (_is_retryable(e) or "429" in str(e)):
