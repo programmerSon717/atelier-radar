@@ -7,6 +7,7 @@
 한국·일본 공고 대부분은 외국인 채용을 언급하지 않는다. 그건 '불가'가 아니라
 '모른다'이고, 모르는 건 모른다고 표시해서 사람이 직접 문의하게 한다.
 """
+import re
 from dataclasses import dataclass
 from typing import Literal, Optional
 
@@ -23,16 +24,41 @@ LABEL_KO = {
     "open": "외국인 지원 가능",
     "ask": "외국인 채용 언급 없음 — 문의 필요",
     "native": "어학시험·현지어 요구 — 사실상 장벽",
-    "domestic": "국내 대학 유학생 전형 — 해당 없음",
+    "domestic": "국내 대학 졸업·유학생 전형 — 해당 없음",
     "closed": "외국인 지원 불가",
 }
 LABEL_ZH = {
     "open": "開放外籍應徵",
     "ask": "未提及外籍 — 需詢問",
     "native": "需語言檢定·當地語言 — 實質門檻",
-    "domestic": "限當地大學留學生 — 不符",
+    "domestic": "限當地大學畢業·留學生 — 不符",
     "closed": "不開放外籍",
 }
+
+
+# ── 모델 판단을 믿지 않고 원문에서 직접 잡는 것들 ──────────────
+# 추출 모델은 같은 페이지를 두 번 읽어도 다르게 답한다. 실제로 현대건설 유학생 공고가
+# 한 번은 target 을 채웠고 한 번은 비웠다. 비면 "✅ 지원 가능" 으로 나간다.
+# 사람이 지원했다가 서류에서 잘리는 종류의 실수라 정규식으로 못을 박는다.
+
+# 한국·일본의 "외국인 유학생 채용" 은 자국 대학에 다닌 유학생 전형이다.
+# 미국 대학 졸업자를 부르는 말이 아니다.
+INTL_STUDENT = re.compile(r"유학생|留学生|외국인\s*유학|外国人留学", re.I)
+
+# 출신 대학 소재지 요건. 이 문구 하나가 후보자를 통째로 배제한다.
+DOMESTIC_DEGREE = re.compile(
+    r"국내\s*(?:정규\s*)?[24]년제|국내\s*정규\s*대학|국내\s*소재\s*대학|"
+    r"국내\s*대학\s*(?:졸업|재학|학위)|국내\s*대학교\s*졸업|"
+    r"日本国内の大学|国内の大学を(?:卒業|修了)", re.I)
+
+
+def _blob(posting) -> str:
+    """모델이 지어낸 산문(summary·notes)은 빼고 공고 원문에서 온 것만 모은다."""
+    return " ".join(filter(None, [
+        posting.title, posting.education_required, posting.foreigner_evidence,
+        posting.domestic_degree_evidence, posting.language_required,
+        *(posting.qualifications or []), *(posting.preferred or []),
+    ]))
 
 
 @dataclass
@@ -66,6 +92,18 @@ def judge(posting, country: str) -> Eligibility:
                            posting.foreigner_evidence,
                            "이미 취업 가능한 비자가 있어야 지원 가능")
 
+    blob = _blob(posting)
+
+    # 모델이 domestic_degree_required 를 안 채워도 원문에 문구가 있으면 그걸 믿는다
+    m = DOMESTIC_DEGREE.search(blob)
+    if m and posting.domestic_degree_required is not False:
+        return Eligibility(
+            "domestic",
+            "국내(한국/일본) 대학 졸업 요건 — 미국 대학 졸업자는 지원 자격 자체가 없음",
+            posting.domestic_degree_evidence or f"공고 원문: …{m.group(0)}…",
+            "이 공고는 건너뛰어라. 해외대 졸업자를 받는 글로벌·해외인재 전형을 따로 찾아야 한다",
+        )
+
     # ★★ 출신 대학 소재지 요건이 가장 먼저다. 이게 걸리면 다른 조건은 볼 필요도 없다.
     # "국내 정규 4년제 대학 졸업자" 는 미국 대학 졸업자를 통째로 배제한다.
     if posting.domestic_degree_required is True:
@@ -85,6 +123,17 @@ def judge(posting, country: str) -> Eligibility:
             "국내(한국/일본) 대학 유학생 대상 전형 — 미국 대학 졸업자는 해당 없음",
             posting.foreigner_evidence or posting.language_test,
             "해외대 졸업자도 되는지 문의하거나, 글로벌·해외인재 전형을 따로 찾을 것",
+        )
+
+    # "외국인 유학생 채용" 이라고 적힌 공고를 모델이 target 없이 넘겨도 open 으로 보내지 않는다.
+    # 해외대 졸업자 대상이라고 공고가 스스로 밝힌 경우에만 예외다.
+    if country in ("KR", "JP") and INTL_STUDENT.search(blob) \
+            and posting.foreigner_target != "overseas_grad":
+        return Eligibility(
+            "domestic",
+            "외국인 '유학생' 전형 — 한국·일본에서는 자국 대학 재학·졸업 외국인 대상이다",
+            posting.foreigner_evidence or posting.title,
+            "해외대 졸업자도 지원되는지 반드시 먼저 확인할 것. 대개는 해당되지 않는다",
         )
 
     # 어학시험 급수를 요구하면 그것부터 넘어야 한다

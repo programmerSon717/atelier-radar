@@ -103,6 +103,10 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
                 continue
             key = store.posting_key(p.office_id, p.title, p.source_url)
             if store.already_sent(conn, key):
+                # 다시 보내지는 않지만, 이번에 더 정확히 읽었으면 저장분을 고친다.
+                # (사이트는 저장분으로 그려진다 — 안 고치면 첫 판독에 영원히 묶인다)
+                if not dry_run and store.refresh_payload(conn, key, p):
+                    print(f"[갱신] {office_id}: {p.title}", file=sys.stderr)
                 continue
             pc = country_of(p, office.country)   # 글로벌 페이지는 공고마다 나라가 다르다
             a = assess(p, pc, office)

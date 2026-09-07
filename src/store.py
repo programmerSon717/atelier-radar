@@ -132,3 +132,44 @@ def last_sweep(conn) -> Optional[str]:
 def log_sweep(conn, now: str) -> None:
     conn.execute("INSERT OR IGNORE INTO sweep_log (ran_at) VALUES (?)", (now,))
     conn.commit()
+
+
+def merge_payload(old: dict, new: dict) -> dict:
+    """재추출 결과를 기존 저장분과 합친다.
+
+    같은 페이지를 두 번 읽어도 모델은 다르게 답한다. 새 결과가 항상 낫지 않다 —
+    한 번은 채워졌던 자격요건이 다음엔 비기도 한다. 그래서 덮어쓰지 않고 채운다:
+    새 값이 비었으면 옛 값을 지키고, 목록은 더 자세한 쪽을 남긴다."""
+    out = dict(old)
+    for k, v in new.items():
+        if v in (None, "", [], {}):
+            continue
+        cur = old.get(k)
+        if isinstance(v, list) and isinstance(cur, list) and len(cur) > len(v):
+            continue        # 이미 더 자세히 적혀 있으면 그대로 둔다
+        out[k] = v
+    return out
+
+
+def refresh_payload(conn, key: str, posting, kit=None) -> bool:
+    """이미 보낸 공고를 다시 읽었을 때 저장 내용을 갱신한다. 텔레그램에는 다시 보내지 않는다.
+
+    이게 없으면 사이트는 처음 읽었을 때의 (틀렸을 수도 있는) 내용에 영원히 묶인다."""
+    row = conn.execute("SELECT payload FROM sent_posting WHERE key=?", (key,)).fetchone()
+    if not row:
+        return False
+    try:
+        old = json.loads(row[0])
+    except Exception:
+        old = {}
+    new = posting.model_dump()
+    if kit is not None:
+        new["_outreach"] = {"subject": kit.subject, "body": kit.body,
+                            "hooks": kit.hooks, "ask_points": kit.ask_points}
+    merged = merge_payload(old, new)
+    if merged == old:
+        return False
+    conn.execute("UPDATE sent_posting SET payload=? WHERE key=?",
+                 (json.dumps(merged, ensure_ascii=False), key))
+    conn.commit()
+    return True

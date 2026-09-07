@@ -41,7 +41,8 @@ DETAIL_HINT = re.compile(
 SKIP_LINK = re.compile(r"\.(pdf|jpe?g|png|gif|zip|docx?|xlsx?)(?:[?#]|$)|^(mailto|tel|javascript):", re.I)
 
 MAX_FOLLOW = 5        # 랜딩 1개당 따라갈 하위 페이지 수 상한
-MAX_IMAGES = 3        # 공고 1건당 모델에 넘길 본문 이미지 수
+MAX_IMAGES = 3        # 사무소 자체 페이지에서 모델에 넘길 본문 이미지 수
+MAX_IMAGES_BOARD = 10  # 잡보드는 공고 여러 건을 한 번에 읽는다. 공고마다 포스터가 따로 있다
 MIN_IMAGE_BYTES = 40_000   # 로고·아이콘을 거르는 하한
 THIN_SHELL = 6_000         # 이보다 얇고 이미지·iframe 도 없으면 JS 껍데기로 본다
 
@@ -51,8 +52,27 @@ CONTENT_IMG = re.compile(
     r"file\d*\.jobkorea\.co\.kr/Mng/|saramin\.co\.kr/.*(?:recruit|user_files)|"
     r"vmspace\.com/.*upload|/recruit.*\.(?:jpe?g|png)|\.(?:jpe?g|png)$", re.I)
 SKIP_IMG = re.compile(r"logo|icon|banner|btn|sprite|ads?\.|facebook|criteo|adnxs|"
-                      r"tracking|pixel|blank|spacer", re.I)
+                      r"tracking|pixel|blank|spacer|"
+                      # 잡코리아가 목록에 끼워 넣는 지역·테마 배너. 공고 내용이 아니다.
+                      r"/Theme/|RegionBUG|_pc\.png|_mo\.png|"
+                      # 회사 채용사이트의 껍데기 이미지들 (메인 비주얼·썸네일·로딩)
+                      r"/assets/img|/common/images|visual_img|thumb-|loading\.|ico_", re.I)
 MAX_BOARD_FOLLOW = 12  # 잡보드 목록에서 열어볼 개별 공고 수
+
+# 잡보드 공고가 "홈페이지 지원" 이면 진짜 지원자격은 회사 채용사이트에 있다.
+# 현대건설이 그랬다 — 잡코리아에는 "대졸이상 (상세요강 참고)" 가 전부였고,
+# **"국내 정규 4년제 대학 졸업자"** 는 회사 사이트의 포스터 이미지에만 있었다.
+# 그 한 줄이 이 후보자를 통째로 배제하는 조건이라, 못 읽으면 "지원 가능" 으로 나간다.
+COMPANY_SITE = re.compile(r"recruit|career|채용|採用|采用|/jobs?/", re.I)
+BOARD_HOST = re.compile(r"jobkorea|saramin|albamon|incruit|518\.com\.tw|104\.com\.tw|"
+                        r"vmspace|indeed|linkedin", re.I)
+JUNK_HOST = re.compile(r"facebook|instagram|youtube|kakao|google|twitter|x\.com|"
+                       r"apple\.com|microsoft|adobe|criteo|doubleclick", re.I)
+# 회사 사이트까지 따라가는 건 브라우저를 띄우는 일이라 비싸다. 실행당 상한을 둔다.
+MAX_COMPANY_FOLLOW = 6
+# 상세가 이 말들을 하고 있으면 자격요건이 회사 사이트에 있다는 뜻이다
+NEEDS_COMPANY_PAGE = re.compile(r"상세\s*요강|홈페이지\s*지원|자사\s*홈페이지|채용\s*홈페이지|"
+                                r"자세한\s*사항은|공고\s*참고", re.I)
 
 # 잡보드의 개별 공고 상세 주소 패턴. 목록 페이지만 읽으면 JD 본문이 통째로 빠진다.
 BOARD_DETAIL = re.compile(
@@ -186,6 +206,32 @@ def find_body_iframes(html: str, base_url: str) -> list[str]:
     return list(out)
 
 
+def find_company_apply_links(html: str, base_url: str, limit: int = 1) -> list[str]:
+    """잡보드 공고에서 회사 자체 채용페이지 주소를 찾는다.
+
+    링크가 <a> 가 아니라 JS 안에 문자열로만 있는 경우가 많아 원문에서 직접 찾는다.
+    **프래그먼트(#/Recruit/2811)를 자르지 않는다** — SPA 는 그게 주소의 전부다."""
+    host = urlparse(base_url).netloc
+    out: dict[str, None] = {}
+    for u in re.findall(r'https?://[^\s"\'<>\\)]+', html):
+        try:
+            pu = urlparse(u)
+        except ValueError:
+            continue
+        if not pu.netloc or pu.netloc == host:
+            continue
+        if BOARD_HOST.search(pu.netloc) or JUNK_HOST.search(pu.netloc):
+            continue
+        if SKIP_LINK.search(pu.path):
+            continue
+        if not COMPANY_SITE.search(pu.netloc + pu.path + (("#" + pu.fragment) if pu.fragment else "")):
+            continue
+        out.setdefault(u.rstrip(".,)\'\""), None)
+        if len(out) >= limit:
+            break
+    return list(out)
+
+
 async def fetch_one(
     client: httpx.AsyncClient, office: Office, follow: bool = True
 ) -> tuple[Office, str | None, str | None]:
@@ -238,6 +284,7 @@ async def fetch_one(
 
         if follow:
             parts = [f"[PAGE] {url}\n{text}"]
+            company_left = MAX_COMPANY_FOLLOW
             # 잡보드는 목록에 JD 가 없다. 개별 공고를 열어야 업무·자격요건이 나온다.
             links = (find_board_detail_links(html, str(r.url)) if is_board
                      else find_detail_links(html, str(r.url)))
@@ -258,7 +305,28 @@ async def fetch_one(
                             images.extend(find_content_images(fr_r.text, fr))
                         except Exception:
                             pass
-                    images.extend(find_content_images(sub_html, link))
+                    sub_imgs = list(find_content_images(sub_html, link))
+
+                    # 잡보드가 "상세요강 참고" 로 넘기면 회사 채용사이트까지 따라간다.
+                    # 대부분 SPA 라 브라우저로 렌더해야 하고, 자격요건은 포스터 이미지에 있다.
+                    if is_board and company_left > 0 and (
+                            NEEDS_COMPANY_PAGE.search(sub_text) or len(sub_text) < 1500):
+                        for capp in find_company_apply_links(sub_html, link):
+                            company_left -= 1
+                            c_html, _ = await asyncio.to_thread(render_js.render, capp)
+                            if not c_html:
+                                continue
+                            c_text = extract_text(c_html)
+                            sub_imgs.extend(find_content_images(c_html, capp))
+                            if len(c_text) > 60:
+                                sub_text += f"\n\n[회사 채용페이지] {capp}\n{c_text}"
+
+                    # 이미지 주소를 그 공고 본문 끝에 붙인다 — 어느 공고의 포스터인지
+                    # 모델이 알아야 자격요건을 엉뚱한 공고에 붙이지 않는다.
+                    for iu in dict.fromkeys(sub_imgs):
+                        sub_text += f"\n[IMAGE] {iu}"
+                        images.append(iu)
+
                     if len(sub_text) >= 150:
                         parts.append(f"[PAGE] {link}\n{sub_text}")
                 except Exception:
@@ -266,7 +334,8 @@ async def fetch_one(
             text = "\n\n".join(parts)
         # 이미지 주소를 본문 끝에 실어 보낸다 (추출기가 비전으로 읽는다)
         if images:
-            uniq = list(dict.fromkeys(images))[:MAX_IMAGES]
+            cap = MAX_IMAGES_BOARD if is_board else MAX_IMAGES
+            uniq = list(dict.fromkeys(images))[:cap]
             text += "\n\n[IMAGES]\n" + "\n".join(uniq)
         return office, text, None
     except Exception as e:  # 네트워크/타임아웃/파싱 전부

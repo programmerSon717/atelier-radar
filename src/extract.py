@@ -223,17 +223,24 @@ IMG_BLOCK = re.compile(r"\n\n\[IMAGES\]\n(.+)$", re.S)
 MAX_IMG_BYTES = 4_000_000   # 너무 큰 이미지는 건너뛴다
 
 
+INLINE_IMG = re.compile(r"^\[IMAGE\]\s+(https?://\S+)\s*$", re.M)
+
+
 def split_images(page_text: str) -> tuple[str, list[str]]:
-    """본문 끝에 실려온 이미지 주소를 떼어낸다."""
+    """본문에 실려온 이미지 주소를 모은다.
+
+    공고별 [IMAGE] 표시는 **본문에 그대로 남긴다.** 그래야 모델이 어느 공고의
+    포스터인지 알고 자격요건을 제자리에 붙인다. 끝에 붙은 [IMAGES] 묶음만 떼어낸다."""
+    urls = INLINE_IMG.findall(page_text)
     m = IMG_BLOCK.search(page_text)
-    if not m:
-        return page_text, []
-    urls = [u.strip() for u in m.group(1).splitlines() if u.strip().startswith("http")]
-    return page_text[:m.start()], urls
+    if m:
+        urls += [u.strip() for u in m.group(1).splitlines() if u.strip().startswith("http")]
+        page_text = page_text[:m.start()]
+    return page_text, list(dict.fromkeys(urls))
 
 
-def fetch_images(urls: list[str]) -> list[tuple[bytes, str]]:
-    """이미지를 받아 (바이트, MIME) 로 돌려준다. 실패는 조용히 건너뛴다."""
+def fetch_images(urls: list[str]) -> list[tuple[str, tuple[bytes, str]]]:
+    """이미지를 받아 (주소, (바이트, MIME)) 로 돌려준다. 실패는 조용히 건너뛴다."""
     import httpx2 as httpx
 
     out = []
@@ -247,7 +254,7 @@ def fetch_images(urls: list[str]) -> list[tuple[bytes, str]]:
                 mime = r.headers.get("content-type", "").split(";")[0]
                 if not mime.startswith("image/"):
                     continue
-                out.append((r.content, mime))
+                out.append((u, (r.content, mime)))
             except Exception:
                 continue
     return out
@@ -279,7 +286,10 @@ def extract_one(
     # 공고 포스터 이미지를 같이 넘긴다 — 텍스트에 없는 지원자격이 거기 있다
     contents: list = [prompt]
     if image_urls:
-        for data, mime in fetch_images(image_urls):
+        # 이미지마다 "본문의 어느 [IMAGE] 인지" 를 먼저 말해준다.
+        # 그냥 붙이면 12건짜리 잡보드에서 조건이 엉뚱한 공고에 붙는다.
+        for url_, (data, mime) in fetch_images(image_urls):
+            contents.append(f"다음 이미지는 본문의 [IMAGE] {url_} 다:")
             contents.append(types.Part.from_bytes(data=data, mime_type=mime))
 
     rcfg = cfg["research"]

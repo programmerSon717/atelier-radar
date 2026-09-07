@@ -85,6 +85,8 @@ def build() -> dict:
         a = assess(p, pc, off)
         if not is_new_grad_ok(a, p.track):
             continue   # 경력직은 사이트에도 싣지 않는다
+        if relevance.no_degree_required(p):
+            continue   # 학력무관 공고는 사이트에도 싣지 않는다 (발송 단계와 같은 기준)
         grade, grade_why = relevance.firm_grade(p, off)
         if grade == "weak":
             continue
