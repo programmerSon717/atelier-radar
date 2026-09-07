@@ -75,8 +75,11 @@ def _urgency(p: Posting, country: str) -> str | None:
     return None
 
 
+FIT_ICON = {"recommend": "👍", "neutral": "➖", "avoid": "👎"}
+
+
 def render_posting(p: Posting, office: Office, a: Assessment, L: dict,
-                   elig=None, kit=None, pay=None) -> str:
+                   elig=None, kit=None, pay=None, fit=None) -> str:
     """텔레그램 메시지. 섹션 이모지 + 인용구로 훑기 쉽게 나눈다."""
     from . import eligibility as _el
     elig = elig or _el.judge(p, office.country)
@@ -100,6 +103,13 @@ def render_posting(p: Posting, office: Office, a: Assessment, L: dict,
         out.append(f"<i>{_esc(elig.reason)}</i>")
     if elig.action:
         out.append(f"👉 {_esc(elig.action)}")
+
+    # ── 추천도 ── 지원이 되느냐 다음으로 궁금한 건 "여기 갈 만한가" 다
+    if fit:
+        grade, reasons = fit
+        out += ["", f"{FIT_ICON.get(grade, '➖')} <b>{_esc(L['fit'][grade])}</b>"]
+        if reasons:
+            out.append(f"<blockquote>{_bul(reasons, 3)}</blockquote>")
 
     out += ["", f"📍 {_esc(where)}   ·   <code>{_esc(track)}</code>"]
     if p.deadline:

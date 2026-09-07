@@ -10,7 +10,12 @@ import re
 NOT_DESIGN = re.compile(
     r"현장\s*관리|현장\s*소장|공무|시공\s*관리|감리|안전\s*관리|품질\s*관리|"
     r"기술\s*영업|영업직|자재|적산|견적|측량|토목|설비\s*시공|전기\s*시공|"
-    r"CAD\s*오퍼레이터|캐드\s*원|모델링\s*알바", re.I)
+    r"CAD\s*오퍼레이터|캐드\s*원|모델링\s*알바|"
+    # 일본어 — 営業職 이 설계직으로 통과하고 있었다 (NOMURA 4건)
+    r"営業職|営業担当|施工管理|現場監督|積算|購買|人事職|経理職|"
+    # 번체 중문 — 日文의 業務(=업무)와 겹치므로 반드시 직무명 통째로만 잡는다
+    r"業務專員|業務助理|工地主任|監造|估價|繪圖員|"
+    r"sales|estimat|site\s*supervis|procurement", re.I)
 # "도면 작업" 은 뺐다 — 그건 설계직이 하는 일이지 배제 사유가 아니다.
 
 # 회사명에서 시공사를 알아보는 말
@@ -66,9 +71,10 @@ def is_low_fit(labels: list[str]) -> bool:
 
 
 # ── 사무소 수준 판정 ───────────────────────────────────────────────
-# 후보자는 Brown 학부 + Columbia GSAPP M.Arch 다. 설계 역량을 쌓을 수 없는 곳에
+# 후보자는 미국 상위권 대학원의 건축학 석사 과정에 있다. 설계 역량을 쌓을 수 없는 곳에
 # 보내는 건 시간 낭비다. 다만 "작아 보인다" 같은 인상으로 자르지 않는다 —
 # 공고에서 확인할 수 있는 사실만 근거로 쓴다.
+# (학교 이름은 여기 적지 않는다. 공개 저장소다.)
 
 # 설계 사무소로서 최소한의 신호 (하나라도 있으면 통과)
 GOOD_SIGNAL = re.compile(
@@ -83,6 +89,26 @@ GOOD_SIGNAL = re.compile(
 LOW_SIGNAL = re.compile(
     r"인허가\s*대행|허가\s*방|도면\s*대행|캐드\s*대행|단기\s*아르바이트|"
     r"아르바이트|알바|파트타임|일용|초대졸|고졸", re.I)
+
+
+# 학력을 아예 안 보는 자리는 건축 석사가 갈 자리가 아니다.
+# 도면 대행·시공 보조·단순 모델링 인력 모집이 대부분이라 실무 경력으로 쌓이지 않는다.
+NO_DEGREE = re.compile(
+    r"학력\s*무관|학력\s*불문|학력\s*무제한|학력\s*제한\s*없|"
+    r"學歷不拘|學歷不限|不限學歷|学歴不問|学歴不定", re.I)
+
+
+def no_degree_required(posting) -> str | None:
+    """'학력무관' 이라고 적힌 공고인가. 적혀 있으면 그 원문을 돌려준다.
+
+    모델이 쓴 summary·notes 는 보지 않는다. "학력 조건은 언급되지 않음" 같은
+    부정문이 들어 있어서 정반대로 읽게 된다 (label() 의 notes 제외와 같은 이유)."""
+    blob = " ".join(filter(None, [
+        posting.education_required, posting.employment_type,
+        *(posting.qualifications or []), *(posting.preferred or []),
+    ]))
+    m = NO_DEGREE.search(blob)
+    return m.group(0).strip() if m else None
 
 
 def firm_grade(posting, office) -> tuple[str, str]:
@@ -103,3 +129,101 @@ def firm_grade(posting, office) -> tuple[str, str]:
     if g:
         return "good", f"설계 역량 신호 — {g.group(0).strip()}"
     return "plain", "설계사무소로 보이나 규모·성격을 판단할 근거가 공고에 없음"
+
+
+# ── 지원 추천도 ────────────────────────────────────────────────
+# 사무소 수준(firm_grade)만으로는 "이 사람이 갈 만한가" 가 안 나온다.
+# 포트폴리오에 실제로 들어 있는 작업과 공고가 겹치는지까지 봐야 한다.
+#
+# 포트폴리오(2024~2025)에서 확인된 작업 갈래:
+#   · 문화·전시·종교 시설 (문화보존센터, 수도원 증축)
+#   · 집합주거·복합용도 (East Village 협동주거)
+#   · 도시·조경·공공공간 (City Hall 공원, 마스터플랜 50/50 전략)
+#   · 모듈러·순환건축 (인턴 실무 — kit-of-parts 가구 시스템)
+#   · 리서치 기반 설계 (전쟁 피해 매핑, 카토그래피)
+#   · 시각화·물리모형·다이어그램 (Rhino, V-Ray, Enscape, 모형 제작)
+# 반대로 실무 경험이 없는 것: 인허가, 시공, 감리, AutoCAD 도면 대행, 대형 상업 타워.
+
+PORTFOLIO = {
+    "문화·전시": re.compile(
+        r"미술관|박물관|전시|문화\s*시설|공연|도서관|기념관|종교|성당|사찰|"
+        r"美術館|博物館|展示|文化施設|劇場|"
+        r"文化中心|展覽|文資|"
+        r"museum|gallery|exhibit|cultur|library|theat|religio", re.I),
+    "주거·복합": re.compile(
+        r"주거|공동\s*주택|아파트|주상복합|집합\s*주거|생활숙박|기숙사|"
+        r"住宅|集合住宅|マンション|"
+        r"住宅|集合住宅|"
+        r"housing|residential|mixed[- ]?use|apartment", re.I),
+    "도시·조경": re.compile(
+        r"도시\s*설계|마스터\s*플랜|조경|공원|공공\s*건축|광장|재생|"
+        r"都市|ランドスケープ|公園|"
+        r"都市設計|景觀|公共|"
+        r"urban|landscape|master\s?plan|public\s*space|regenerat", re.I),
+    "모듈러·지속가능": re.compile(
+        r"모듈러|프리팹|친환경|지속\s*가능|탄소|패시브|에너지|녹색|리모델링|"
+        r"環境|省エネ|木造|"
+        r"永續|綠建築|循環|"
+        r"modular|prefab|sustainab|passive|carbon|LEED|green\s*build|circular", re.I),
+    "리서치·공모": re.compile(
+        r"리서치|연구|현상\s*설계|공모|당선|기획\s*설계|컨셉\s*설계|"
+        r"コンペ|設計競技|"
+        r"競圖|"
+        r"research|competition|concept\s*design", re.I),
+    "시각화·모형": re.compile(
+        r"렌더링|모형|다이어그램|시각화|비주얼|투시도|"
+        r"Rhino|V-?Ray|Enscape|Blender|Photoshop|InDesign|"
+        r"レンダリング|模型|"
+        r"渲染|"
+        r"rendering|visuali[sz]|diagram|model\s?making", re.I),
+}
+
+FIT_GRADES = ("recommend", "neutral", "avoid")
+
+
+def portfolio_overlap(posting) -> list[str]:
+    """공고와 포트폴리오가 겹치는 갈래. 공고 원문에서 온 필드만 본다."""
+    blob = " ".join(filter(None, [
+        posting.title, posting.company,
+        *(posting.responsibilities or []), *(posting.qualifications or []),
+        *(posting.preferred or []), *(posting.software or []),
+    ]))
+    return [k for k, rx in PORTFOLIO.items() if rx.search(blob)]
+
+
+def fit_grade(posting, office, assessment, labels: list[str] | None = None
+              ) -> tuple[str, list[str]]:
+    """('recommend'|'neutral'|'avoid', 근거들).
+
+    학력이 아니라 **작업 내용**으로 가른다. 근거 없이 좋게도 나쁘게도 쓰지 않는다."""
+    # assess() 는 마지막에 a.labels 를 판정 문구로 덮어쓴다. 그래서 여기 넘어온
+    # labels 에는 🔧/🏗 가 이미 없다 — 원본을 직접 다시 만들어 쓴다.
+    labels = labels if labels is not None else label(posting, office)
+    reasons: list[str] = []
+
+    grade_firm, why_firm = firm_grade(posting, office)
+    overlap = portfolio_overlap(posting)
+
+    # ── 비추천: 가서 설계를 못 배우거나, 지금 지원해도 안 되는 자리 ──
+    if grade_firm == "weak":
+        return "avoid", [why_firm]
+    if is_low_fit(labels) or "직무 적합성 낮음" in getattr(assessment, "soft_blockers", []):
+        bad = [l for l in labels if l.startswith(("🔧", "🏗"))]
+        return "avoid", bad or ["설계직으로 보기 어려움"]
+    if assessment.blockers:
+        return "avoid", [f"지원 자체가 막힘 — {b}" for b in assessment.blockers]
+
+    # ── 추천: 검증된 사무소 + 포트폴리오와 겹치는 작업 ──
+    strong_firm = (office.tier in ("large", "global", "atelier")) or grade_firm == "good"
+    if strong_firm:
+        reasons.append(why_firm)
+    if overlap:
+        reasons.append("포트폴리오와 겹침 — " + " · ".join(overlap))
+    if office.eng_ok in ("yes", "partial") or any(l.startswith("🌏") for l in labels):
+        reasons.append("외국인·영어 관련 신호 있음")
+
+    if strong_firm and overlap:
+        return "recommend", reasons
+    if strong_firm and office.priority == "high":
+        return "recommend", reasons + ["우선 추적 대상 사무소"]
+    return "neutral", reasons or ["판단할 근거가 공고에 부족함"]

@@ -4,6 +4,8 @@ HTML 에 데이터를 구워 넣지 않고 분리한다. 그래야 페이지를 
 데이터만 갈아끼우면 화면이 갱신되고, 브라우저에서 필터·정렬을 그때그때 할 수 있다.
 """
 import json
+import os
+import re
 import sqlite3
 import sys
 from datetime import datetime, timezone
@@ -17,6 +19,37 @@ from src.match import assess, is_new_grad_ok
 from src.scope import country_of                     # noqa: E402
 from src.models import Posting                   # noqa: E402
 from src.targets import load_offices             # noqa: E402
+
+
+# ── 공개 사이트로 나가는 것에서 신원을 지운다 ───────────────────
+# 메일 초안 서명에 본인 이름이, 본문에 학교 이름이 들어간다. docs/ 는 GitHub Pages 로
+# 그대로 공개되므로 여기서 반드시 가린다. 텔레그램(비공개 그룹)에는 실명 그대로 나간다.
+def _identity_known() -> bool:
+    """가릴 대상을 알고 있는가. 모르면 메일 초안을 아예 싣지 않는다 (실패-차단)."""
+    return bool(os.environ.get("CANDIDATE_NAME"))
+
+
+def _redact(v):
+    if isinstance(v, str):
+        for env, mask in (("CANDIDATE_NAME", "(지원자 이름)"),
+                          ("CANDIDATE_SCHOOL", "(대학원)")):
+            real = os.environ.get(env)
+            if real:
+                v = v.replace(real, mask)
+                # "컬럼비아 대학원(GSAPP)" 을 넘겨도 모델은 "컬럼비아 대학교" 로 풀어 쓴다.
+                # 괄호·수식어를 뗀 알맹이도 같이 가린다.
+                # "Jasmin (Jia-Chen) Lin" 처럼 여러 토막인 이름은 성만 따로 쓰이기도 한다.
+                # 학교도 "컬럼비아 대학원(GSAPP)" 을 넘기면 "컬럼비아 대학교" 로 풀어 쓴다.
+                for tok in re.split(r"[()（）,·\s]+", real.strip()):
+                    if len(tok) >= 2:
+                        v = v.replace(tok, mask)
+                v = re.sub(rf"(?:{re.escape(mask)}[\s·]*)+", mask, v)
+        return v
+    if isinstance(v, list):
+        return [_redact(x) for x in v]
+    if isinstance(v, dict):
+        return {k: _redact(x) for k, x in v.items()}
+    return v
 
 
 def build() -> dict:
@@ -55,18 +88,24 @@ def build() -> dict:
         grade, grade_why = relevance.firm_grade(p, off)
         if grade == "weak":
             continue
+        fit_grade, fit_why = relevance.fit_grade(p, off, a)
         e = eligibility.judge(p, pc)
         pay = salary.describe(p, pc, off.tier)
         posts.append({
-            **d,
+            # _outreach 원본(실명이 들어 있다)이 그대로 실리지 않게 밑줄 키는 빼고 펼친다.
+            # 아래에서 가린 사본만 "outreach" 로 싣는다.
+            **{k: v for k, v in d.items() if not k.startswith("_")},
             "country": pc, "office_name": off.display_name,
             "office_tier": off.tier, "sent_at": sent_at,
             "verdict": a.verdict, "expired": a.expired,
             "blockers_desc": a.blockers_desc, "soft_desc": a.soft_desc,
             "met": a.met, "unknowns": a.unknowns,
             "gate": e.gate, "gate_icon": e.icon, "gate_label": e.label("ko"),
-            "outreach": d.get("_outreach"),
+            # 이름을 모르는 채로 공개 사이트에 메일 초안을 싣지 않는다.
+            # (워크플로에서 시크릿을 안 넘기면 여기서 통째로 빠진다)
+            "outreach": _redact(d.get("_outreach")) if _identity_known() else None,
             "grade": grade, "grade_why": grade_why, "pay": pay,
+            "fit": fit_grade, "fit_why": fit_why,
             "gate_reason": e.reason, "gate_evidence": e.evidence, "gate_action": e.action,
         })
 

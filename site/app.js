@@ -211,6 +211,7 @@ function row(p) {
     <div class="rbody">
       <div class="rtop">
         <span class="gatechip">${p.gate_icon} ${E(g.t)}</span>
+        ${fitChip(p)}
         <span class="rtitle">${E(p.title)}</span>
         <span class="rfirm">${E(p.company || p.office_name)}</span>
       </div>
@@ -223,6 +224,20 @@ function row(p) {
       ${p.outreach ? mailBlock(p.outreach) : ""}
       <p style="margin:10px 0 0"><a class="src" href="${E(p.source_url)}" target="_blank" rel="noopener">공고 원문 →</a></p>
     </div></article>`;
+}
+
+// 지원 추천도 — 사무소 수준과 포트폴리오 접점으로 매긴다 (src/relevance.py: fit_grade)
+const FIT = {
+  recommend: { t: "추천", i: "\u{1F44D}", c: "#2f7d51" },
+  neutral:   { t: "중립", i: "\u2796",    c: "#8a8a8a" },
+  avoid:     { t: "비추천", i: "\u{1F44E}", c: "#a3452f" },
+};
+
+function fitChip(p) {
+  const f = FIT[p.fit];
+  if (!f) return "";
+  const why = (p.fit_why || []).join(" · ");
+  return `<span class="fitchip" style="--fc:${f.c}" title="${E(why)}">${f.i} ${f.t}</span>`;
 }
 
 function syncClearButton() {

@@ -27,3 +27,7 @@ software: "요구 툴"
 employment: "고용형태"
 salary: "급여"
 process: "전형"
+fit:
+  recommend: "추천 — 지원해 볼 만한 곳"
+  neutral: "중립 — 판단할 근거 부족"
+  avoid: "비추천"

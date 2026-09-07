@@ -27,3 +27,7 @@ software: "軟體需求"
 employment: "職務類別"
 salary: "薪資"
 process: "甄選流程"
+fit:
+  recommend: "推薦 — 值得投的地方"
+  neutral: "中立 — 資訊不足，難以判斷"
+  avoid: "不推薦"

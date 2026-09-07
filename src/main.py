@@ -110,6 +110,11 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
             if cfg.get("filter", {}).get("new_grad_only", True) and not is_new_grad_ok(a, p.track):
                 print(f"[skip] {office_id}: {p.title} — 경력직 요건", file=sys.stderr)
                 continue
+            # 학력을 안 보는 자리는 건축 석사가 갈 자리가 아니다 — 라벨이 아니라 제외한다
+            nd = relevance.no_degree_required(p)
+            if nd and cfg.get("filter", {}).get("drop_no_degree", True):
+                print(f"[skip] {office_id}: {p.title} — 학력무관 ({nd})", file=sys.stderr)
+                continue
             # 설계 역량을 쌓을 수 없는 곳은 보내지 않는다 (근거 있는 경우만 제외)
             grade, why = relevance.firm_grade(p, office)
             if grade == "weak" and cfg.get("filter", {}).get("drop_weak_firms", True):
@@ -126,7 +131,8 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
                     outreach.draft, gclient, p, p.company or office.display_name,
                     pc, a.unknowns, cfg)
 
-            text = render_posting(p, office, a, L, elig, kit, pay)
+            fit = relevance.fit_grade(p, office, a)
+            text = render_posting(p, office, a, L, elig, kit, pay, fit)
             if dry_run:
                 print("\n" + "─" * 60 + "\n" + text)
             else:

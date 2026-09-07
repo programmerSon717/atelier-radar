@@ -87,6 +87,13 @@ class Posting(BaseModel):
         default=None, description="위 판단의 근거가 된 공고 원문 문장. 그대로 인용. 없으면 null"
     )
 
+    education_required: Optional[str] = Field(
+        default=None,
+        description="학력 요건을 원문 그대로. 예: '학력무관', '대졸 이상', "
+                    "'건축학과 5년제 졸업', '學歷不拘', '学歴不問', '大卒以上'. "
+                    "공고에 학력 얘기가 없으면 null. 지어내지 마라",
+    )
+
     language_test: Optional[str] = Field(
         default=None,
         description="요구하는 어학시험과 급수를 원문 그대로. "

@@ -127,6 +127,9 @@ responsibilities / qualifications / preferred / software / salary / employment_t
 - 페이지에 없는 항목은 빈 배열이나 null 로 둔다. 지어내지 마라.
 - software 는 공고에 실제로 이름이 나온 것만 (Revit, Rhino, AutoCAD, SketchUp, 3ds Max 등).
 
+education_required 에는 학력 요건을 원문 그대로 옮겨라 (예: "학력무관", "대졸 이상",
+"건축학과 5년제 졸업 필수", "學歷不拘"). 학력 얘기가 없으면 null 로 둔다.
+
 language_required 에는 페이지 원문 표현을 그대로 옮겨라 (예: "日本語能力試験N2以上").
 
 ## 출력 언어
@@ -145,7 +148,7 @@ USER = """\
 - 오늘 날짜: {today}
 
 ## 참고 (후보자)
-대만 국적 / 미국 대학원 M.Arch 2027년 5월 졸업 예정 / 정규직 경력 0년
+대만 국적 / 미국 대학원 건축학 석사과정(M.Arch) 2027년 5월 졸업 예정 / 정규직 경력 0년
 영어 능통, 중국어 네이티브, 한국어 초급, **일본어 없음**
 
 ## 페이지 텍스트

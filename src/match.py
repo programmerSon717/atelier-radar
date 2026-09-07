@@ -25,7 +25,13 @@ ZH_LANG = re.compile(r"中文|mandarin|chinese|중국어", re.I)
 EN_ONLY = re.compile(r"english[ -]?only|영어만|英語のみ", re.I)
 
 EXP_YEARS = re.compile(r"(\d+)\s*(?:\+|년|年|years?)", re.I)
-VAGUE_EXP = re.compile(r"a few years|several years|수년|数年", re.I)
+VAGUE_EXP = re.compile(r"a few years|several years|수년|数年|數年", re.I)
+
+# 중화권·일본 공고는 경력 연수를 한자로 쓴다. "三年以上之工作經驗" 을 못 읽으면
+# 경력직 공고가 신입 공고인 채로 새어 나간다 (실제로 2건이 발송됐다).
+HAN_DIGITS = {"一": 1, "二": 2, "兩": 2, "两": 2, "三": 3, "四": 4,
+              "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+HAN_YEARS = re.compile(r"([一二三四五六七八九十兩两]{1,3})\s*(?:年|년)")
 
 # "経験3年以下" 는 상한(第二新卒 자격)이지 요구 경력이 아니다.
 # 이걸 하한으로 읽으면 자격 있는 신입 공고를 숨겨버린다.
@@ -101,23 +107,41 @@ def _language_check(p: Posting, a: Assessment) -> None:
         a.labels.append("중국어 요건 — 네이티브 (충족)")
 
 
+def _han_years(text: str) -> Optional[int]:
+    """한자로 쓴 경력 연수를 읽는다. 三年 → 3, 十年 → 10, 二十年 → 20."""
+    m = HAN_YEARS.search(text)
+    if not m:
+        return None
+    s = m.group(1)
+    if "十" in s:
+        tens, _, ones = s.partition("十")
+        return (HAN_DIGITS.get(tens, 1) if tens else 1) * 10 + (HAN_DIGITS.get(ones, 0) if ones else 0)
+    return HAN_DIGITS.get(s)
+
+
 def _experience_check(p: Posting, a: Assessment) -> None:
     req = p.experience_required
     if not req:
-        return
+        # 요건란이 비어도 제목에 "3年以上" 처럼 박힌 공고가 있다. 추출이 놓치면 여기서 잡는다.
+        title = p.title or ""
+        if (EXP_YEARS.search(title) or HAN_YEARS.search(title)) and EXP_FLOOR.search(title):
+            req = title
+        else:
+            return
     if NEW_GRAD_OK.search(req):
         a.met.append(f"신입 가능 — {req}")
         return
     m = EXP_YEARS.search(req)
-    if m and EXP_CEILING.search(req):
+    years = int(m.group(1)) if m else _han_years(req)
+    if years is not None and EXP_CEILING.search(req):
         # 상한 조건 — 경력 0년은 당연히 충족한다
-        a.met.append(f"경력 {m.group(1)}년 이하 대상 — {req}")
+        a.met.append(f"경력 {years}년 이하 대상 — {req}")
         return
     # "2027년 졸업예정자" 의 2027 을 요구 경력으로 읽으면 안 된다.
     # 경력 연수는 현실적으로 두 자리를 넘지 않고, 연도는 네 자리다. 크기로 가른다.
     # ("경력 5년" 처럼 '이상' 을 생략하는 표기가 한국어에 흔해서 하한 표시를 요구할 수 없다)
-    if m and 1 <= int(m.group(1)) <= 40:
-        a.blockers_desc.append(f"경력 {m.group(1)}년 요구 — {req}")
+    if years is not None and 1 <= years <= 40:
+        a.blockers_desc.append(f"경력 {years}년 요구 — {req}")
         a.blockers.append("정규직 경력 0년")
     elif VAGUE_EXP.search(req):
         a.blockers_desc.append(f"경력직 요건 — {req}")
