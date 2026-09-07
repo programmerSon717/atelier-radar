@@ -11,7 +11,7 @@
   --paper:#F4F6F7; --sheet:#FFFFFF; --ink:#171C22; --graphite:#67727E;
   --hair:#C9D1D6; --hair-soft:#E3E9EC; --tint:#EDF1F3;
   --redline:#C4432C;
-  --open:#2F7355; --ask:#2B6098; --native:#9A6B14; --closed:#A33A2C;
+  --open:#2F7355; --ask:#2B6098; --native:#9A6B14; --domestic:#6B5B95; --closed:#A33A2C;
   --f-ui:'Archivo',-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;
   --f-mono:'IBM Plex Mono',ui-monospace,'SF Mono',Menlo,monospace;
 }
@@ -19,13 +19,13 @@
   --paper:#12161A; --sheet:#181D22; --ink:#E6EBEE; --graphite:#8D98A3;
   --hair:#2C343B; --hair-soft:#232A30; --tint:#1D2329;
   --redline:#E2705A;
-  --open:#5FA783; --ask:#6BA3DC; --native:#C79B45; --closed:#DE7C6B;
+  --open:#5FA783; --ask:#6BA3DC; --native:#C79B45; --domestic:#A392C9; --closed:#DE7C6B;
 }}
 :root[data-theme="dark"]{
   --paper:#12161A; --sheet:#181D22; --ink:#E6EBEE; --graphite:#8D98A3;
   --hair:#2C343B; --hair-soft:#232A30; --tint:#1D2329;
   --redline:#E2705A;
-  --open:#5FA783; --ask:#6BA3DC; --native:#C79B45; --closed:#DE7C6B;
+  --open:#5FA783; --ask:#6BA3DC; --native:#C79B45; --domestic:#A392C9; --closed:#DE7C6B;
 }
 *{box-sizing:border-box}
 html{color-scheme:light dark}
@@ -50,7 +50,7 @@ h2{font-size:15px;font-weight:600;margin:0}
 
 /* 게이트 요약 — 이 페이지의 요점 */
 .gates{margin-top:22px;display:grid;gap:1px;background:var(--hair);
-  border:1px solid var(--hair);grid-template-columns:repeat(4,1fr)}
+  border:1px solid var(--hair);grid-template-columns:repeat(5,1fr)}
 .gate{background:var(--sheet);padding:12px 14px;text-align:left;border:0;
   border-top:3px solid var(--g);cursor:pointer;font:inherit;color:inherit;display:block}
 .gate[aria-pressed="true"]{background:var(--tint)}
@@ -111,6 +111,8 @@ summary:focus-visible{outline:2px solid var(--redline);outline-offset:2px}
 .jd ul{margin:0;padding-left:17px;font-size:13.5px}
 .jd li{margin-bottom:4px}
 .jd p{margin:0;font-size:13.5px}
+details.mail>summary{color:var(--ask);font-weight:600;margin-top:9px}
+details.mail .jd{border-left:3px solid var(--ask)}
 .src{font-family:var(--f-mono);font-size:11.5px;color:var(--redline);text-decoration:none;
   border-bottom:1px solid currentColor}
 .src:hover{background:var(--tint)}
@@ -129,6 +131,7 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--hair);
 @media (max-width:760px){
   .tblock{grid-template-columns:1fr 1fr}
   .gates{grid-template-columns:1fr 1fr}
+  .gate .d{display:none}
   .guide td:first-child{width:auto}
   h1{font-size:21px}
 }

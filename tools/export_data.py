@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src import eligibility                      # noqa: E402
-from src.match import assess                     # noqa: E402
+from src.match import assess, is_new_grad_ok                     # noqa: E402
 from src.models import Posting                   # noqa: E402
 from src.targets import load_offices             # noqa: E402
 
@@ -48,14 +48,18 @@ def build() -> dict:
         if off is None:
             continue
         a = assess(p, off.country, off)
+        if not is_new_grad_ok(a, p.track):
+            continue   # 경력직은 사이트에도 싣지 않는다
         e = eligibility.judge(p, off.country)
         posts.append({
             **d,
             "country": off.country, "office_name": off.display_name,
             "office_tier": off.tier, "sent_at": sent_at,
-            "verdict": a.verdict, "expired": a.expired, "labels": a.labels,
-            "blockers": a.blockers, "soft_blockers": a.soft_blockers,
+            "verdict": a.verdict, "expired": a.expired,
+            "blockers_desc": a.blockers_desc, "soft_desc": a.soft_desc,
+            "met": a.met, "unknowns": a.unknowns,
             "gate": e.gate, "gate_icon": e.icon, "gate_label": e.label("ko"),
+            "outreach": d.get("_outreach"),
             "gate_reason": e.reason, "gate_evidence": e.evidence, "gate_action": e.action,
         })
 

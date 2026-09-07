@@ -63,6 +63,22 @@ class Posting(BaseModel):
         default=None,
         description="위 판단의 근거가 된 공고 원문 문장. 짧게 그대로 인용. 없으면 null",
     )
+    foreigner_target: Optional[
+        Literal["domestic_intl_student", "overseas_grad", "any", "unclear"]
+    ] = Field(
+        default=None,
+        description="외국인 채용이 어떤 유형을 대상으로 하는가. "
+                    "domestic_intl_student=국내(한국/일본) 대학에 재학·졸업한 유학생 대상 "
+                    "(예: '국내 대학 졸업 외국인', '日本の大学卒業'), "
+                    "overseas_grad=해외 대학 졸업자 대상 (예: '해외대 졸업자', 'global track'), "
+                    "any=출신 대학 무관, unclear=외국인은 뽑는데 대상이 불분명. "
+                    "외국인 언급 자체가 없으면 null",
+    )
+    language_test: Optional[str] = Field(
+        default=None,
+        description="요구하는 어학시험과 급수를 원문 그대로. "
+                    "예: 'TOPIK 4급 이상', 'JLPT N2', '한국어능력시험 5급'. 없으면 null",
+    )
 
     # ── JD 본문 ──
     responsibilities: list[str] = Field(
@@ -86,6 +102,23 @@ class Posting(BaseModel):
     )
     process: Optional[str] = Field(
         default=None, description="전형 절차 (예: 서류→실기→면접). 없으면 null"
+    )
+
+    # ── 연락처: "문의 필요" 로 판정되면 여기가 없으면 아무것도 못 한다 ──
+    contact_email: Optional[str] = Field(
+        default=None, description="지원·문의용 이메일. 페이지에 있는 것만. 없으면 null"
+    )
+    contact_phone: Optional[str] = Field(
+        default=None, description="채용 문의 전화번호. 페이지에 있는 것만. 없으면 null"
+    )
+    apply_how: Optional[str] = Field(
+        default=None,
+        description="지원 방법 원문 (예: '이력서·포트폴리오를 아래 메일로 송부'). 없으면 null",
+    )
+    firm_projects: list[str] = Field(
+        default_factory=list,
+        description="페이지에 언급된 **이 사무소의 실제 프로젝트명**. 페이지에 나온 것만. "
+                    "네가 아는 지식으로 채우지 마라. 최대 8개. 없으면 빈 배열",
     )
 
     deadline: Optional[str] = Field(default=None, description="YYYY-MM-DD 또는 원문 표기")

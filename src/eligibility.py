@@ -10,23 +10,27 @@
 from dataclasses import dataclass
 from typing import Literal, Optional
 
-# open   = 지원 가능 (근거 있음)
-# closed = 지원 불가 (근거 있음)
-# ask    = 공고에 언급 없음 — 직접 문의해야 함
-# native = 언어가 사실상 벽 (한국어 유창/일본어 필수 등)
-Gate = Literal["open", "ask", "native", "closed"]
+# open     = 지원 가능 (근거 있음)
+# ask      = 공고에 언급 없음 — 직접 문의해야 함
+# native   = 어학시험·현지어가 벽
+# domestic = 외국인은 뽑지만 '국내 대학 유학생' 대상이라 해당 없음
+# closed   = 지원 불가 (근거 있음)
+Gate = Literal["open", "ask", "native", "domestic", "closed"]
 
-ICON = {"open": "🟢", "ask": "🔵", "native": "🟠", "closed": "🔴"}
+# 색깔 공은 정보를 담지 않으면서 자리만 차지한다. 상태를 그대로 말하는 기호를 쓴다.
+ICON = {"open": "✅", "ask": "❔", "native": "🈲", "domestic": "🎓", "closed": "⛔"}
 LABEL_KO = {
     "open": "외국인 지원 가능",
     "ask": "외국인 채용 언급 없음 — 문의 필요",
-    "native": "현지어 요구 — 사실상 장벽",
+    "native": "어학시험·현지어 요구 — 사실상 장벽",
+    "domestic": "국내 대학 유학생 전형 — 해당 없음",
     "closed": "외국인 지원 불가",
 }
 LABEL_ZH = {
     "open": "開放外籍應徵",
     "ask": "未提及外籍 — 需詢問",
-    "native": "需當地語言 — 實質門檻",
+    "native": "需語言檢定·當地語言 — 實質門檻",
+    "domestic": "限當地大學留學生 — 不符",
     "closed": "不開放外籍",
 }
 
@@ -62,11 +66,32 @@ def judge(posting, country: str) -> Eligibility:
                            posting.foreigner_evidence,
                            "이미 취업 가능한 비자가 있어야 지원 가능")
 
+    # ★ 외국인을 뽑더라도 "어떤 외국인" 인지가 갈린다.
+    # 한국·일본의 외국인 채용은 대부분 자국 대학에 다닌 유학생 대상이다.
+    # 후보자는 미국 대학 졸업이라 그 전형에는 해당하지 않는다.
+    if posting.foreigner_target == "domestic_intl_student":
+        return Eligibility(
+            "domestic",
+            "국내(한국/일본) 대학 유학생 대상 전형 — 미국 대학 졸업자는 해당 없음",
+            posting.foreigner_evidence or posting.language_test,
+            "해외대 졸업자도 되는지 문의하거나, 글로벌·해외인재 전형을 따로 찾을 것",
+        )
+
+    # 어학시험 급수를 요구하면 그것부터 넘어야 한다
+    if posting.language_test and country in ("KR", "JP"):
+        return Eligibility(
+            "native",
+            f"어학시험 요구 — {posting.language_test}",
+            posting.foreigner_evidence or posting.language_test,
+            "해당 급수를 먼저 확보해야 지원 가능",
+        )
+
     # 공고가 명시적으로 허용한 경우
     if posting.foreigner_eligible is True or posting.visa_sponsorship is True:
-        return Eligibility("open", "공고에 외국인 지원 가능 명시",
-                           posting.foreigner_evidence,
-                           "바로 지원 가능")
+        why = "공고에 외국인 지원 가능 명시"
+        if posting.foreigner_target == "overseas_grad":
+            why = "해외 대학 졸업자 대상 전형 — 조건 부합"
+        return Eligibility("open", why, posting.foreigner_evidence, "바로 지원 가능")
 
     # 언어가 벽인 경우 — 지원은 되지만 현실적으로 막힌다
     if posting.requires_japanese:

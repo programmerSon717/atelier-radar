@@ -41,8 +41,12 @@ ISO_DATE = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
 class Assessment:
     verdict: Verdict
     labels: list[str] = field(default_factory=list)
-    blockers: list[str] = field(default_factory=list)       # hard
+    blockers: list[str] = field(default_factory=list)       # hard — 지금 지원해도 떨어진다
     soft_blockers: list[str] = field(default_factory=list)  # 준비하면 넘을 수 있는 것
+    unknowns: list[str] = field(default_factory=list)       # 공고에 안 적혀 확인이 필요한 것
+    met: list[str] = field(default_factory=list)            # 충족하는 조건
+    blockers_desc: list[str] = field(default_factory=list)  # 막는 이유(사람이 읽는 문장)
+    soft_desc: list[str] = field(default_factory=list)      # 준비하면 넘는 것(문장)
     expired: bool = False
 
 
@@ -61,7 +65,7 @@ def _deadline_check(p: Posting, a: Assessment) -> None:
         return
     if dl < date.today():
         a.expired = True
-        a.labels.append(f"⏰ 이미 마감됨 ({dl.isoformat()}) — 다음 사이클 참고용")
+        a.blockers_desc.append(f"이미 마감됨 ({dl.isoformat()}) — 다음 사이클 참고용")
 
 
 def _flag(explicit: Optional[bool], pattern: re.Pattern, text: str) -> Optional[bool]:
@@ -76,27 +80,27 @@ def _language_check(p: Posting, a: Assessment) -> None:
     text = req or ""
 
     if p.english_only_ok is True or EN_ONLY.search(text):
-        a.labels.append("🟢 영어로 가능")
+        a.met.append("영어로 업무 가능")
         return
 
     needs_ja = _flag(p.requires_japanese, JP_LANG, text)
     needs_ko = _flag(p.requires_korean, KO_LANG, text)
 
     if needs_ja is None and needs_ko is None and not req:
-        a.labels.append("⚪️ 언어 요건 미확인")
+        a.unknowns.append("언어 요건 미기재")
         return
 
     # 요건 원문은 항상 그대로 보여준다 — 라벨이 틀렸을 때 사람이 바로 잡을 수 있게
     if req:
-        a.labels.append(f"🗣 요건 원문: {req}")
+        a.unknowns.append(f"언어 요건: {req}")
     if needs_ja:
-        a.labels.append("🔴 일본어 필수 — 현재 미보유")
+        a.blockers_desc.append("일본어 필수 — 현재 미보유")
         a.blockers.append("일본어 없음")
     if needs_ko:
-        a.labels.append("🟡 한국어 필수 — 현재 초급")
+        a.soft_desc.append("한국어 필수 — 현재 초급")
         a.soft_blockers.append("한국어 초급")
     if not needs_ja and not needs_ko and ZH_LANG.search(text):
-        a.labels.append("🟢 중국어 요건 — 네이티브")
+        a.labels.append("중국어 요건 — 네이티브 (충족)")
 
 
 def _experience_check(p: Posting, a: Assessment) -> None:
@@ -104,33 +108,34 @@ def _experience_check(p: Posting, a: Assessment) -> None:
     if not req:
         return
     if NEW_GRAD_OK.search(req):
-        a.labels.append(f"🟢 신입 가능 — {req}")
+        a.met.append(f"신입 가능 — {req}")
         return
     m = EXP_YEARS.search(req)
     if m and EXP_CEILING.search(req):
         # 상한 조건 — 경력 0년은 당연히 충족한다
-        a.labels.append(f"🟢 경력 {m.group(1)}년 이하 대상 — {req}")
+        a.met.append(f"경력 {m.group(1)}년 이하 대상 — {req}")
         return
     # "2027년 졸업예정자" 의 2027 을 요구 경력으로 읽으면 안 된다.
-    # 하한 표시(이상/以上/+)가 명시된 숫자만 요구 경력으로 본다.
-    if m and int(m.group(1)) >= 1 and EXP_FLOOR.search(req) and int(m.group(1)) < 100:
-        a.labels.append(f"🔴 경력 {m.group(1)}년 요구 — {req}")
+    # 경력 연수는 현실적으로 두 자리를 넘지 않고, 연도는 네 자리다. 크기로 가른다.
+    # ("경력 5년" 처럼 '이상' 을 생략하는 표기가 한국어에 흔해서 하한 표시를 요구할 수 없다)
+    if m and 1 <= int(m.group(1)) <= 40:
+        a.blockers_desc.append(f"경력 {m.group(1)}년 요구 — {req}")
         a.blockers.append("정규직 경력 0년")
     elif VAGUE_EXP.search(req):
-        a.labels.append(f"🔴 경력직 요건 — {req}")
+        a.blockers_desc.append(f"경력직 요건 — {req}")
         a.blockers.append("정규직 경력 0년")
     else:
-        a.labels.append(f"⚪️ 경력 요건: {req}")
+        a.unknowns.append(f"경력 요건 불명확: {req}")
 
 
 def _timing_check(p: Posting, a: Assessment, country: str) -> None:
     """2027년 5월 졸업. 일본 4월 일괄 입사와 어긋나는 건이 핵심."""
     gy = p.grad_year_required or ""
     if country == "JP" and re.search(r"2027年4月|2027年卒", gy):
-        a.labels.append(f"🔴 {gy} — 2027년 5월 졸업이라 4월 입사 불가")
+        a.blockers_desc.append(f"{gy} — 2027년 5월 졸업이라 4월 입사 불가")
         a.blockers.append("졸업 시기 불일치")
     elif gy:
-        a.labels.append(f"⚪️ 졸업연도 조건: {gy}")
+        a.unknowns.append(f"졸업연도 조건: {gy}")
 
 
 def _visa_check(p: Posting, a: Assessment, country: str) -> None:
@@ -138,10 +143,25 @@ def _visa_check(p: Posting, a: Assessment, country: str) -> None:
         return  # 대만 국적 — 비자 무관
     if p.visa_sponsorship is False:
         # 스폰서가 없다고 지원이 막히는 건 아니다. 본인이 비자를 구해야 할 뿐.
-        a.labels.append("🟡 비자 스폰서 없음 — 본인이 해결해야 함")
+        a.soft_desc.append("비자 스폰서 없음 — 본인이 해결해야 함")
         a.soft_blockers.append("비자 자력 해결 필요")
     elif p.visa_sponsorship is True:
-        a.labels.append("🟢 비자 스폰서 있음")
+        a.met.append("비자 스폰서 있음")
+
+
+# 인턴은 정의상 경력직이 아니다. 공고 문구에 "professional experience" 같은 말이
+# 섞여 있어도(주로 우대사항이다) 경력직으로 걸러버리면 안 된다.
+INTERN_TRACKS = {"intern", "intern_to_fulltime"}
+
+
+def is_new_grad_ok(a: "Assessment", track: str | None = None) -> bool:
+    """신입(0년차)이 지원할 수 있는 공고인가.
+
+    후보자는 경력이 0년이다. 경력을 요구하는 공고는 지원 자체가 안 되므로
+    라벨만 붙여 보내지 않고 아예 내보내지 않는다. 단 인턴은 예외다."""
+    if track in INTERN_TRACKS:
+        return True
+    return "정규직 경력 0년" not in a.blockers
 
 
 def assess(p: Posting, country: str, office=None) -> Assessment:
@@ -159,13 +179,15 @@ def assess(p: Posting, country: str, office=None) -> Assessment:
         a.soft_blockers.append("직무 적합성 낮음")
 
     if p.confidence == "unverified":
-        a.labels.append("⚠️ 미검증 — 직접 확인 필요")
+        a.unknowns.append("미검증 — 출처를 직접 확인할 것")
+
+    a.labels = a.blockers_desc + a.soft_desc + a.met + a.unknowns
 
     if a.expired:
         a.verdict = "expired"
     elif a.blockers:
         a.verdict = "blocked"
-    elif a.soft_blockers or any(l.startswith("⚪️") for l in a.labels):
+    elif a.soft_blockers or a.unknowns:
         a.verdict = "conditional"
     else:
         a.verdict = "fit"

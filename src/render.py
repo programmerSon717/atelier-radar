@@ -57,7 +57,8 @@ def _tags(p: Posting, office: Office, elig) -> str:
     return " ".join(f"#{x}" for x in dict.fromkeys(out) if x)
 
 
-def render_posting(p: Posting, office: Office, a: Assessment, L: dict, elig=None) -> str:
+def render_posting(p: Posting, office: Office, a: Assessment, L: dict,
+                   elig=None, kit=None) -> str:
     """텔레그램 메시지. 섹션 이모지 + 인용구로 훑기 쉽게 나눈다."""
     from . import eligibility as _el
     elig = elig or _el.judge(p, office.country)
@@ -107,13 +108,47 @@ def render_posting(p: Posting, office: Office, a: Assessment, L: dict, elig=None
     if facts:
         out += ["", f"📄 <b>조건</b>", *facts]
 
-    # 판정 근거 — 막는 것만 짧게. 나머지는 웹에서 본다.
-    hard = [l for l in a.labels if l[:2].strip() in ("🔴", "⛔️", "⏰", "🏗", "🔧")]
-    if hard:
-        out += ["", "⚠️ " + "\n⚠️ ".join(_esc(x) for x in hard[:4])]
+    # 판정 근거는 색깔 공이 아니라 제목으로 나눈다. 뭐가 막고 뭐가 되는지가 바로 보인다.
+    if a.blockers_desc:
+        out += ["", "⛔ <b>걸리는 조건</b>",
+                f"<blockquote>{_bul(a.blockers_desc, 5)}</blockquote>"]
+    if a.soft_desc:
+        out += ["", "🔧 <b>준비하면 넘는 조건</b>",
+                f"<blockquote>{_bul(a.soft_desc, 4)}</blockquote>"]
+    if a.met:
+        out += ["", "✔️ <b>충족하는 조건</b>",
+                f"<blockquote>{_bul(a.met, 4)}</blockquote>"]
+    if a.unknowns:
+        out += ["", "❔ <b>공고에 없어 확인이 필요한 것</b>",
+                f"<blockquote>{_bul(a.unknowns, 4)}</blockquote>"]
 
     if p.notes:
         out += ["", f"❓ <i>{_esc(L['unresolved'])}: {_esc(p.notes)}</i>"]
+
+    # ── 연락처 ── 문의하라고만 하고 어디로 할지 안 주면 아무것도 못 한다
+    contacts = []
+    if p.contact_email:
+        contacts.append(f"✉️ <code>{_esc(p.contact_email)}</code>")
+    if p.contact_phone:
+        contacts.append(f"☎️ <code>{_esc(p.contact_phone)}</code>")
+    if p.apply_how:
+        contacts.append(f"📮 {_esc(p.apply_how)}")
+    if contacts:
+        out += ["", "📇 <b>연락처 · 지원 방법</b>", *contacts]
+
+    if p.firm_projects:
+        out += ["", "🏗 <b>이 사무소 프로젝트</b>",
+                f"<blockquote>{_bul(p.firm_projects, 6)}</blockquote>"]
+
+    # ── 바로 보낼 수 있는 문의 메일 ──
+    if kit is not None:
+        out += ["", "📨 <b>문의 메일 초안</b>",
+                f"<b>제목:</b> {_esc(kit.subject)}",
+                f"<blockquote>{_esc(kit.body)}</blockquote>"]
+        if kit.hooks:
+            out += ["🪝 <b>엮을 거리</b>", f"<blockquote>{_bul(kit.hooks, 4)}</blockquote>"]
+        if kit.ask_points:
+            out += ["❓ <b>꼭 물어볼 것</b>", f"<blockquote>{_bul(kit.ask_points, 4)}</blockquote>"]
 
     out += ["", f'🔗 <a href="{html.escape(p.source_url, quote=True)}">{L["source"]}</a>',
             "", _tags(p, office, elig)]

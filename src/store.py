@@ -112,12 +112,14 @@ def already_sent(conn, key: str) -> bool:
     ).fetchone() is not None
 
 
-def mark_sent(conn, key: str, posting, now: str) -> None:
+def mark_sent(conn, key: str, posting, now: str, outreach=None) -> None:
     conn.execute(
         "INSERT OR IGNORE INTO sent_posting "
         "(key, office_id, title, source_url, sent_at, payload) VALUES (?,?,?,?,?,?)",
         (key, posting.office_id, posting.title, posting.source_url, now,
-         json.dumps(posting.model_dump(), ensure_ascii=False)),
+         json.dumps({**posting.model_dump(),
+                     "_outreach": outreach.model_dump() if outreach else None},
+                    ensure_ascii=False)),
     )
     conn.commit()
 

@@ -58,6 +58,7 @@ jobs:
           TELEGRAM_TOPIC_KR: ${{ secrets.TELEGRAM_TOPIC_KR }}
           TELEGRAM_TOPIC_JP: ${{ secrets.TELEGRAM_TOPIC_JP }}
           TELEGRAM_TOPIC_TW: ${{ secrets.TELEGRAM_TOPIC_TW }}
+          CANDIDATE_NAME: ${{ secrets.CANDIDATE_NAME }}
         run: |
           if [ "${{ github.event.schedule }}" = "0 0 * * 1" ] || [ "${{ inputs.sweep }}" = "true" ]; then
             echo "::notice::주간 전체 훑기"
