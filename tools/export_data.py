@@ -85,7 +85,7 @@ def build() -> dict:
         a = assess(p, pc, off)
         if not is_new_grad_ok(a, p.track):
             continue   # 경력직은 사이트에도 싣지 않는다
-        if relevance.no_degree_required(p):
+        if relevance.drop_for_no_degree(p, off):
             continue   # 학력무관 공고는 사이트에도 싣지 않는다 (발송 단계와 같은 기준)
         grade, grade_why = relevance.firm_grade(p, off)
         if grade == "weak":
@@ -110,6 +110,25 @@ def build() -> dict:
             "fit": fit_grade, "fit_why": fit_why,
             "gate_reason": e.reason, "gate_evidence": e.evidence, "gate_action": e.action,
         })
+
+    # 같은 공고가 두 번 실리는 일이 있다. 잡보드에서 목록 URL 로 한 번, 상세 URL 로
+    # 또 한 번 들어오면 키가 갈린다. 화면에서는 회사+제목이 같으면 한 건으로 합치고,
+    # **내용이 더 채워진 쪽**을 남긴다 (빈 판독이 채워진 판독을 덮으면 안 된다).
+    def _richness(x: dict) -> tuple:
+        return (
+            sum(1 for k in ("qualifications", "responsibilities", "preferred",
+                            "software", "firm_projects") if x.get(k)),
+            0 if x.get("gate") == "ask" else 1,     # 판정이 선 쪽을 우선한다
+            len(json.dumps(x, ensure_ascii=False)),
+        )
+
+    dedup: dict[tuple, dict] = {}
+    for x in posts:
+        k = ("".join((x.get("company") or x.get("office_name") or "").split()).lower(),
+             "".join((x.get("title") or "").split()).lower())
+        if k not in dedup or _richness(x) > _richness(dedup[k]):
+            dedup[k] = x
+    posts = list(dedup.values())
 
     # 아카이브(과거 공고) — LLM 을 거치지 않고 목록에서 직접 긁은 가벼운 기록이다.
     # JD 는 없지만 '누가 언제 뽑았나' 는 알 수 있어서 내년 시점을 잡는 데 쓰인다.

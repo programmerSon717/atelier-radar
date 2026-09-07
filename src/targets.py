@@ -1,5 +1,7 @@
 """data/targets/*.yaml 과 profile.yaml 로더."""
+import re
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
@@ -55,6 +57,46 @@ def load_offices() -> list[Office]:
                 )
             )
     return offices
+
+
+_CORP = re.compile(r"\(\s*주\s*\)|㈜|주식\s*회사|\(\s*유\s*\)|유한\s*회사|"
+                   r"株式会社|㈱|股份有限公司|有限公司|Co\.?,?\s*Ltd\.?|Inc\.?|LLC", re.I)
+
+
+def _norm_name(s: str) -> str:
+    return re.sub(r"[\s·,.\-_'\"]+", "", _CORP.sub("", s or "")).lower()
+
+
+@lru_cache(maxsize=1)
+def _name_index() -> dict[str, "Office"]:
+    """사무소 이름 → Office. 잡보드로 들어온 공고가 우리가 아는 곳인지 알아보려고 쓴다."""
+    idx: dict[str, Office] = {}
+    for o in load_offices():
+        if o.tier == "job_board":
+            continue
+        for v in o.name.values():
+            n = _norm_name(v)
+            if len(n) >= 3:
+                idx[n] = o
+    return idx
+
+
+def match_office(*texts: Optional[str]) -> Optional["Office"]:
+    """회사명(또는 제목)이 우리 추적 목록의 사무소와 같은 곳인지 찾는다.
+
+    잡보드 공고는 office 가 게시판이라 tier 로는 판단할 수 없다. 원오원아키텍스의
+    신입공채가 vmspace 를 통해 들어와도 '이름 모를 사무소' 로 취급되던 이유다."""
+    idx = _name_index()
+    for t in texts:
+        n = _norm_name(t or "")
+        if len(n) < 3:
+            continue
+        if n in idx:
+            return idx[n]
+        for key, off in idx.items():
+            if key in n or n in key:
+                return off
+    return None
 
 
 def load_profile() -> dict[str, Any]:

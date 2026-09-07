@@ -115,7 +115,7 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
                 print(f"[skip] {office_id}: {p.title} — 경력직 요건", file=sys.stderr)
                 continue
             # 학력을 안 보는 자리는 건축 석사가 갈 자리가 아니다 — 라벨이 아니라 제외한다
-            nd = relevance.no_degree_required(p)
+            nd = relevance.drop_for_no_degree(p, office)
             if nd and cfg.get("filter", {}).get("drop_no_degree", True):
                 print(f"[skip] {office_id}: {p.title} — 학력무관 ({nd})", file=sys.stderr)
                 continue

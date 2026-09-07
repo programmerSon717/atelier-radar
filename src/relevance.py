@@ -58,6 +58,10 @@ def label(posting, office) -> list[str]:
 
     # summary 에도 "비자 스폰서 여부는 언급되지 않음" 같은 부정문이 들어간다.
     # notes 와 같은 이유로 제외하고, 공고 원문에서 온 필드만 본다.
+    nd = no_degree_required(posting)
+    if nd:
+        out.append(f"🎓 공고에 학력 조건 없음 — {nd}")
+
     fm = FOREIGN_OK.search(jd_blob) or FOREIGN_OK.search(posting.title or "")
     if fm:
         out.append(f"🌏 외국인 지원 관련 언급 — {fm.group(0)}")
@@ -96,6 +100,30 @@ LOW_SIGNAL = re.compile(
 NO_DEGREE = re.compile(
     r"학력\s*무관|학력\s*불문|학력\s*무제한|학력\s*제한\s*없|"
     r"學歷不拘|學歷不限|不限學歷|学歴不問|学歴不定", re.I)
+
+
+# 우리가 직접 고르고 확인한 사무소들. 여기는 게시판 표기만으로 자르지 않는다.
+VERIFIED_TIERS = ("atelier", "large", "global", "mid")
+
+
+def drop_for_no_degree(posting, office) -> str | None:
+    """이 공고를 '학력무관' 을 이유로 버릴 것인가.
+
+    vmspace·사람인은 채용 폼의 학력 칸에 '학력무관' 을 그냥 넣는 관행이 있다.
+    실제로 원오원아키텍스(아틀리에) 신입공채도 그렇게 찍혀 있었다. 표기만 보고 자르면
+    우리가 직접 고른 사무소가 통째로 사라진다. 그래서 **이름 모를 곳에만** 적용한다.
+    검증된 사무소는 버리지 않고 라벨로만 알린다."""
+    nd = no_degree_required(posting)
+    if not nd:
+        return None
+    if office is not None and office.tier in VERIFIED_TIERS:
+        return None
+    # 잡보드로 들어온 공고는 office 가 게시판이다. 회사 이름으로 우리 목록과 맞춰본다.
+    from .targets import match_office
+    known = match_office(getattr(posting, "company", None), posting.title)
+    if known is not None and known.tier in VERIFIED_TIERS:
+        return None
+    return nd
 
 
 def no_degree_required(posting) -> str | None:
