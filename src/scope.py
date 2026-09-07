@@ -13,11 +13,14 @@ COUNTRY_PATTERNS = {
 
 # 명확히 범위 밖인 곳들. 여기 걸리면 국내 표시가 없는 한 버린다.
 OUT_OF_SCOPE = re.compile(
-    r"new york|newyork|\bNYC\b|paris|london|shanghai|beijing|上海|北京|巴黎|倫敦|"
-    r"singapore|hong ?kong|香港|新加坡|berlin|milan|los angeles|\bLA\b|dubai|sydney|"
+    r"new york|newyork|paris|london|shanghai|beijing|上海|北京|巴黎|倫敦|"
+    r"singapore|hong ?kong|香港|新加坡|berlin|milan|los angeles|dubai|sydney|"
     r"amsterdam|copenhagen|barcelona|madrid|toronto|vancouver|melbourne|bangkok",
     re.I,
 )
+# 약어는 대소문자를 가려야 한다. re.I 를 걸면 "Villa la Roche" 의 la 가
+# Los Angeles 로 잡혀서 멀쩡한 공고가 조용히 버려진다.
+OUT_ABBR = re.compile(r"\bNYC\b|\bL\.A\.\b")
 
 
 def posting_location_text(posting) -> str:
@@ -37,7 +40,7 @@ def in_scope(posting, office_country: str) -> tuple[bool, str]:
         if pat.search(text):
             return True, ""
 
-    m = OUT_OF_SCOPE.search(text)
+    m = OUT_OF_SCOPE.search(text) or OUT_ABBR.search(text)
     if m:
         return False, f"근무지 범위 밖: {m.group(0)}"
 

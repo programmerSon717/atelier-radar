@@ -25,7 +25,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 35   # JS 렌더링이 붙어 느려졌다
     steps:
       - uses: actions/checkout@v4
 
@@ -35,6 +35,10 @@ jobs:
           cache: pip
 
       - run: pip install -r requirements.txt
+
+      # JS 로 그리는 채용페이지(한국 ATS, 대만 사무소)를 읽으려면 실제 브라우저가 필요하다
+      - name: 브라우저 설치
+        run: python -m playwright install --with-deps chromium
 
       # 이미 보낸 공고를 기억해야 같은 걸 두 번 안 보낸다.
       # 러너는 매번 새 머신이라 캐시로 store/ 를 넘긴다.

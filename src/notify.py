@@ -26,7 +26,10 @@ def topic_id(country: str) -> int | None:
 
 
 async def send(text: str, country: str | None = None, disable_preview: bool = True) -> list[str]:
-    """실패한 chat_id 들을 돌려준다. country 를 주면 그 나라 토픽으로 보낸다."""
+    """실패한 chat_id 들을 돌려준다. country 를 주면 그 나라 토픽으로 보낸다.
+
+    한 곳이라도 성공하면 호출부는 '보냈다'로 처리한다 (send_ok 참조) —
+    안 그러면 성공한 챗에 다음 실행 때 같은 공고가 또 간다."""
     token = os.environ.get("TELEGRAM_BOT_TOKEN")
     if not token:
         return ["TELEGRAM_BOT_TOKEN 없음"]
@@ -54,3 +57,11 @@ async def send(text: str, country: str | None = None, disable_preview: bool = Tr
             except Exception as e:
                 failed.append(f"{cid}: {type(e).__name__}")
     return failed
+
+
+async def send_ok(text: str, country: str | None = None) -> tuple[bool, list[str]]:
+    """(하나라도 갔는가, 실패 목록). 부분 실패로 인한 중복 발송을 막는다."""
+    targets = chat_ids()
+    failed = await send(text, country=country)
+    delivered = bool(targets) and len(failed) < len(targets)
+    return delivered, failed

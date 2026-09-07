@@ -82,7 +82,8 @@ def render_posting(p: Posting, office: Office, a: Assessment, L: dict) -> str:
     if p.notes:
         out += ["", f"<i>{_esc(L['unresolved'])}: {_esc(p.notes)}</i>"]
 
-    out += ["", f'<a href="{_esc(p.source_url)}">{L["source"]} →</a>']
+    # href 는 속성값이라 따옴표까지 막아야 한다. 안 그러면 텔레그램이 400 으로 통째로 거부한다.
+    out += ["", f'<a href="{html.escape(p.source_url, quote=True)}">{L["source"]} →</a>']
     return "\n".join(out)
 
 

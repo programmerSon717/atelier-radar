@@ -111,7 +111,9 @@ def _experience_check(p: Posting, a: Assessment) -> None:
         # 상한 조건 — 경력 0년은 당연히 충족한다
         a.labels.append(f"🟢 경력 {m.group(1)}년 이하 대상 — {req}")
         return
-    if m and int(m.group(1)) >= 1:
+    # "2027년 졸업예정자" 의 2027 을 요구 경력으로 읽으면 안 된다.
+    # 하한 표시(이상/以上/+)가 명시된 숫자만 요구 경력으로 본다.
+    if m and int(m.group(1)) >= 1 and EXP_FLOOR.search(req) and int(m.group(1)) < 100:
         a.labels.append(f"🔴 경력 {m.group(1)}년 요구 — {req}")
         a.blockers.append("정규직 경력 0년")
     elif VAGUE_EXP.search(req):

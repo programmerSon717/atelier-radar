@@ -11,6 +11,7 @@ from urllib.parse import urljoin, urlparse
 import httpx2 as httpx
 from selectolax.parser import HTMLParser
 
+from . import render_js
 from .targets import Office
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " \
@@ -34,7 +35,7 @@ DETAIL_HINT = re.compile(
     re.I,
 )
 # 따라가면 안 되는 것들
-SKIP_LINK = re.compile(r"\.(pdf|jpe?g|png|gif|zip|docx?|xlsx?)$|^(mailto|tel|javascript):", re.I)
+SKIP_LINK = re.compile(r"\.(pdf|jpe?g|png|gif|zip|docx?|xlsx?)(?:[?#]|$)|^(mailto|tel|javascript):", re.I)
 
 MAX_FOLLOW = 5        # 랜딩 1개당 따라갈 하위 페이지 수 상한
 MAX_BOARD_FOLLOW = 8  # 잡보드 검색결과에서 열어볼 개별 공고 수
@@ -143,17 +144,26 @@ async def fetch_one(
         if r.status_code >= 400:
             return office, None, f"HTTP {r.status_code}"
         is_board = office.tier == "job_board"
-        text = (extract_text_with_links(r.text, str(r.url)) if is_board
-                else extract_text(r.text))
-        # JS 로 그리는 페이지는 본문이 거의 비어서 나온다 → 해시가 무의미
+        html = r.text
+        text = (extract_text_with_links(html, str(r.url)) if is_board
+                else extract_text(html))
+
+        # 본문이 비면 JS 로 그리는 페이지다. 브라우저로 한 번 더 시도한다.
+        # (한국 *.recruiter.co.kr ATS, 대만 사무소 자사 사이트가 대부분 여기 해당)
         if len(text) < 200:
-            return office, None, "본문 부족(JS 렌더링 추정)"
+            rendered, rerr = await asyncio.to_thread(render_js.render, str(r.url))
+            if rendered:
+                html = rendered
+                text = (extract_text_with_links(html, str(r.url)) if is_board
+                        else extract_text(html))
+            if len(text) < 200:
+                return office, None, f"본문 부족(JS 렌더링{'' if rendered else ' 실패: ' + (rerr or '')})"
 
         if follow:
             parts = [f"[PAGE] {url}\n{text}"]
             # 잡보드는 목록에 JD 가 없다. 개별 공고를 열어야 업무·자격요건이 나온다.
-            links = (find_board_detail_links(r.text, str(r.url)) if is_board
-                     else find_detail_links(r.text, str(r.url)))
+            links = (find_board_detail_links(html, str(r.url)) if is_board
+                     else find_detail_links(html, str(r.url)))
             for link in links:
                 try:
                     sub = await client.get(link, follow_redirects=True)

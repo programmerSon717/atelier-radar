@@ -5,8 +5,8 @@ offices:
   # ── 대형 종합건축사사무소 (신입공채 존재) ──
   - id: kr-heerim
     name: { ko: "희림종합건축사사무소", en: "Heerim Architects & Planners" }
-    careers_url: "https://www.jobkorea.co.kr/Recruit/Co_Read/C/heerim"
-    fetch_note: "자사 채용페이지는 recruiter.co.kr SPA 라 긁히지 않음 → 잡코리아 회사페이지 사용"
+    careers_url: "https://heerim.recruiter.co.kr/career/home"
+    fetch_note: "recruiter.co.kr ATS — JS 렌더링 필요"
     city: 서울
     tier: large
     hiring_types: [new_grad, intern]
@@ -14,8 +14,8 @@ offices:
     verified: false
   - id: kr-junglim
     name: { ko: "정림건축종합건축사사무소", en: "Junglim Architecture" }
-    careers_url: "https://junglim.com/recruit/"
-    fetch_note: "junglim.recruiter.co.kr 은 SPA. 자사 랜딩은 본문이 얇음(693자)"
+    careers_url: "https://junglim.recruiter.co.kr/career/home"
+    fetch_note: "recruiter.co.kr ATS — JS 렌더링 필요"
     city: 서울
     tier: large
     hiring_types: [new_grad, intern]
@@ -38,6 +38,8 @@ offices:
     verified: false
   - id: kr-samoo
     name: { ko: "삼우종합건축사사무소", en: "Samoo Architects & Engineers" }
+    careers_url: "https://samoo.recruiter.co.kr/career/home"
+    fetch_note: "recruiter.co.kr ATS — JS 렌더링 필요"
     city: 서울
     tier: large
     note: "삼성물산 계열. 공채 규모 큼, 한국어 요구 강할 것으로 추정"
@@ -62,6 +64,7 @@ offices:
   # ── 아틀리에계 / 디자인 중심 (영어 가능성 높음) ──
   - id: kr-101
     name: { ko: "원오원 아키텍스", en: "ONE O ONE architects (101)" }
+    careers_url: "https://www.101architects.com/"
     city: 서울
     tier: atelier
     note: "★ 사용자 직접 지목. 최욱. 소규모 — 상시채용/포트폴리오 심사 방식 추정"

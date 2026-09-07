@@ -17,7 +17,26 @@ from google.genai import types
 from .models import OfficeReport
 from .targets import Office
 
-MAX_PAGE_CHARS = 60_000  # 페이지가 길면 앞부분만. 채용 정보는 보통 상단에 있다.
+MAX_PAGE_CHARS = 60_000  # 전체 예산. 페이지가 여러 개면 나눠 쓴다.
+
+
+def budget_pages(text: str, limit: int = MAX_PAGE_CHARS) -> str:
+    """`[PAGE] url` 로 이어붙인 본문을 페이지 수만큼 나눠서 자른다.
+
+    통째로 앞에서 자르면 잡보드처럼 목록이 긴 경우 뒤쪽 상세 공고가 전부 날아간다.
+    페이지마다 몫을 주고, 짧은 페이지가 남긴 몫은 긴 페이지가 가져간다."""
+    if len(text) <= limit:
+        return text
+    parts = text.split("\n\n[PAGE] ")
+    if len(parts) == 1:
+        return text[:limit]
+    parts = [parts[0]] + ["[PAGE] " + p for p in parts[1:]]
+
+    share = limit // len(parts)
+    spare = sum(share - len(p) for p in parts if len(p) < share)
+    long_n = sum(1 for p in parts if len(p) > share) or 1
+    bonus = spare // long_n
+    return "\n\n".join(p if len(p) <= share else p[:share + bonus] for p in parts)
 
 # 모델이 생성하는 문장의 언어. UI 문구는 config/locales/ 가 따로 담당한다.
 OUT_LANG = {
@@ -138,13 +157,14 @@ def extract_one(
         city=office.city or "미상",
         url=url,
         today=date.today().isoformat(),
-        page_text=page_text[:MAX_PAGE_CHARS],
+        page_text=budget_pages(page_text),
         board_note=BOARD_NOTE if (office.tier == "job_board") else "",
     )
     rcfg = cfg["research"]
     attempts = rcfg.get("max_retries", 3)
     resp = None
     used = None
+    last_err = None
     for model_name in _models(cfg):
       used = model_name
       for attempt in range(attempts):
@@ -171,11 +191,17 @@ def extract_one(
                 time.sleep(min(60, 2 ** attempt * rcfg.get("retry_base_seconds", 8))
                            + random.uniform(0, 2))
                 continue
+            # 재시도를 다 썼어도 한도/과부하 계열이면 다음 모델로 넘어간다.
+            # 모델마다 할당량이 따로라서, 여기서 포기하면 남은 모델을 두고 버리는 셈이다.
+            if _is_retryable(e) or "429" in str(e):
+                last_err = f"{type(e).__name__}: {str(e)[:120]}"
+                resp = None
+                break
             return office.id, None, f"{type(e).__name__}: {str(e)[:160]}"
       if resp is not None:
         break
     if resp is None:
-        return office.id, None, f"모든 모델 일일 한도 소진 (마지막: {used})"
+        return office.id, None, last_err or f"모든 모델 한도 소진 (마지막: {used})"
 
     report = resp.parsed
     if report is None:

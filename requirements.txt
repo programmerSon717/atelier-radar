@@ -4,3 +4,4 @@ pydantic>=2
 PyYAML
 python-dotenv
 selectolax
+playwright

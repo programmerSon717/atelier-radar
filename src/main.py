@@ -48,8 +48,7 @@ async def pick_targets(
             if n == FAIL_ESCALATE_AT or sweep:
                 errors.append(f"{office.id}: {err} → 수동 확인 필요")
             continue
-        changed = store.page_changed(conn, office.id, url, text, now)
-        if changed or sweep:
+        if store.page_changed(conn, office.id, text) or sweep:
             picked.append((office, url, text))
     conn.close()
     return picked, errors
@@ -73,17 +72,20 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
     print(f"[tier1] {len(offices)}개 확인 → {len(pages)}개 추출 대상", file=sys.stderr)
 
     reports = await extract_many(pages, cfg)
+    page_text = {o.id: (u, t) for o, u, t in pages}
 
     conn = store.connect()
     now = now_iso()
     sent = 0
     for office_id, report, err in reports:
         if err:
+            # 추출이 실패했으면 해시를 저장하지 않는다 → 다음 실행이 다시 시도한다
             errors.append(f"{office_id}: {err}")
             continue
         if report is None:
             continue
         office = by_id[office_id]
+        office_ok = True
         for p in report.postings:
             # 추적 범위는 한국·일본·대만뿐. 같은 사무소라도 뉴욕·파리 자리는 버린다.
             ok, why = in_scope(p, office.country)
@@ -98,12 +100,19 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
             if dry_run:
                 print("\n" + "─" * 60 + "\n" + text)
             else:
-                failed = await notify.send(text, country=office.country)
+                delivered, failed = await notify.send_ok(text, country=office.country)
                 if failed:
                     errors.extend(failed)
-                    continue  # 못 보냈으면 sent 로 기록하지 않는다 — 다음에 다시 시도
+                    office_ok = False
+                if not delivered:
+                    continue  # 아무 데도 못 갔을 때만 미발송으로 남긴다
             store.mark_sent(conn, key, p, now)
             sent += 1
+        # 추출과 발송이 다 끝난 뒤에야 "이 페이지는 봤다" 고 기록한다
+        if office_ok and not dry_run and office_id in page_text:
+            u_, t_ = page_text[office_id]
+            store.commit_page_hash(conn, office_id, u_, t_, now)
+
         for u in report.unresolved:
             print(f"[unresolved] {office_id}: {u}", file=sys.stderr)
 

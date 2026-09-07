@@ -10,7 +10,8 @@ import re
 NOT_DESIGN = re.compile(
     r"현장\s*관리|현장\s*소장|공무|시공\s*관리|감리|안전\s*관리|품질\s*관리|"
     r"기술\s*영업|영업직|자재|적산|견적|측량|토목|설비\s*시공|전기\s*시공|"
-    r"CAD\s*오퍼레이터|캐드\s*원|도면\s*작업|모델링\s*알바", re.I)
+    r"CAD\s*오퍼레이터|캐드\s*원|모델링\s*알바", re.I)
+# "도면 작업" 은 뺐다 — 그건 설계직이 하는 일이지 배제 사유가 아니다.
 
 # 회사명에서 시공사를 알아보는 말
 CONSTRUCTOR = re.compile(r"종합건설|건설\(주\)|건설㈜|建設|construction", re.I)
@@ -28,8 +29,9 @@ FOREIGN_OK = re.compile(
 def label(posting, office) -> list[str]:
     """공고에 붙일 현실성 라벨. 근거 없으면 아무것도 붙이지 않는다."""
     out: list[str] = []
-    blob = " ".join(filter(None, [posting.title, posting.summary, posting.company,
-                                  posting.location]))
+    # 직무 판정은 제목·회사명으로만 한다. 모델이 쓴 summary 산문에 대고 맞추면
+    # "실시설계 도면 작업" 같은 정상 공고가 걸린다.
+    blob = " ".join(filter(None, [posting.title, posting.company, posting.location]))
     # notes 는 "무엇을 확인 못 했는지" 적는 칸이다. "비자 정보 없음" 같은 부정문이 들어 있어서
     # 여기서 '비자' 를 찾으면 정반대로 읽게 된다. 그래서 notes 는 신호 탐지에서 제외한다.
     jd_blob = " ".join(filter(None, [
@@ -49,7 +51,9 @@ def label(posting, office) -> list[str]:
         if KR_REGION.search(loc) and not CAPITAL_AREA.search(loc):
             out.append(f"📍 지방 소재 — {loc}")
 
-    fm = FOREIGN_OK.search(blob) or FOREIGN_OK.search(jd_blob)
+    # summary 에도 "비자 스폰서 여부는 언급되지 않음" 같은 부정문이 들어간다.
+    # notes 와 같은 이유로 제외하고, 공고 원문에서 온 필드만 본다.
+    fm = FOREIGN_OK.search(jd_blob) or FOREIGN_OK.search(posting.title or "")
     if fm:
         out.append(f"🌏 외국인 지원 관련 언급 — {fm.group(0)}")
 

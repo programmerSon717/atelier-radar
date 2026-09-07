@@ -4,6 +4,8 @@ country: TW
 offices:
   - id: tw-jjp
     name: { zh: "潘冀聯合建築師事務所", en: "J. J. Pan & Partners (JJP)" }
+    careers_url: "https://www.jjpan.com/"
+    fetch_note: "SPA — JS 렌더링 필요"
     city: 台北
     tier: large
     careers_url: "https://www.jjpan.com"
@@ -14,6 +16,8 @@ offices:
     priority: high
   - id: tw-artech
     name: { zh: "姚仁喜｜大元建築工場", en: "KRIS YAO | ARTECH" }
+    careers_url: "https://www.artech.com.tw/careers"
+    fetch_note: "SPA — JS 렌더링 필요"
     city: 台北
     tier: large
     note: "국제적 인지도 높음. 해외 유학 배경 우대 추정"
@@ -23,7 +27,7 @@ offices:
     priority: high
   - id: tw-bioarch
     name: { zh: "九典聯合建築師事務所", en: "Bio-architecture Formosana" }
-    careers_url: "https://www.bioarch.com.tw/recruit"
+    careers_url: "https://www.bioarch.com.tw/recruit/"
     city: 台北
     tier: large
     note: "친환경·녹색건축 특화 — 후보자 ClimateStudio 스킬과 매치"
