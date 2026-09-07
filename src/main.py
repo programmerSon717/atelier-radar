@@ -14,7 +14,7 @@ from datetime import date
 from dotenv import load_dotenv
 
 from . import notify, outreach, store
-from . import eligibility
+from . import eligibility, relevance, salary
 from .match import assess, is_new_grad_ok
 from .scope import country_of, in_scope
 from .render import load_locale, render_posting, render_summary
@@ -110,7 +110,14 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
             if cfg.get("filter", {}).get("new_grad_only", True) and not is_new_grad_ok(a, p.track):
                 print(f"[skip] {office_id}: {p.title} — 경력직 요건", file=sys.stderr)
                 continue
+            # 설계 역량을 쌓을 수 없는 곳은 보내지 않는다 (근거 있는 경우만 제외)
+            grade, why = relevance.firm_grade(p, office)
+            if grade == "weak" and cfg.get("filter", {}).get("drop_weak_firms", True):
+                print(f"[skip] {office_id}: {p.title} — {why}", file=sys.stderr)
+                continue
+
             elig = eligibility.judge(p, pc)
+            pay = salary.describe(p, pc, office.tier)
 
             # 문의가 필요한 건에만 메일 초안을 만든다 (호출 아끼기)
             kit = None
@@ -119,7 +126,7 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
                     outreach.draft, gclient, p, p.company or office.display_name,
                     pc, a.unknowns, cfg)
 
-            text = render_posting(p, office, a, L, elig, kit)
+            text = render_posting(p, office, a, L, elig, kit, pay)
             if dry_run:
                 print("\n" + "─" * 60 + "\n" + text)
             else:

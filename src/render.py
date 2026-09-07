@@ -76,7 +76,7 @@ def _urgency(p: Posting, country: str) -> str | None:
 
 
 def render_posting(p: Posting, office: Office, a: Assessment, L: dict,
-                   elig=None, kit=None) -> str:
+                   elig=None, kit=None, pay=None) -> str:
     """텔레그램 메시지. 섹션 이모지 + 인용구로 훑기 쉽게 나눈다."""
     from . import eligibility as _el
     elig = elig or _el.judge(p, office.country)
@@ -121,11 +121,27 @@ def render_posting(p: Posting, office: Office, a: Assessment, L: dict,
         out += ["", f"🖥 <b>{L['software']}</b>",
                 f"<code>{_esc(' · '.join(p.software[:12]))}</code>"]
 
-    facts = [(L["employment"], p.employment_type), (L["salary"], p.salary),
+    facts = [(L["employment"], p.employment_type),
              (L["process"], p.process), (L["language"], p.language_required)]
     facts = [f"• {k}: {_esc(v)}" for k, v in facts if v]
     if facts:
         out += ["", f"📄 <b>조건</b>", *facts]
+
+    # ── 연봉 ── 공고값과 업계 참고치를 반드시 구분해서 보여준다
+    if pay:
+        lines = []
+        if pay.get("stated"):
+            lines.append(f"• 공고 명시: <b>{_esc(pay['stated'])}</b>")
+        elif p.salary:
+            lines.append(f"• 공고 명시: {_esc(p.salary)} (금액 없음)")
+        b = pay.get("benchmark")
+        if b:
+            lines.append(f"• 업계 참고: <b>{_esc(b['range'])}</b> (신입)")
+            if b.get("note"):
+                lines.append(f"  <i>{_esc(b['note'])}</i>")
+            lines.append(f"  <i>※ {_esc(b['disclaimer'])}</i>")
+        if lines:
+            out += ["", "💰 <b>연봉</b>", *lines]
 
     # 판정 근거는 색깔 공이 아니라 제목으로 나눈다. 뭐가 막고 뭐가 되는지가 바로 보인다.
     if a.blockers_desc:

@@ -12,7 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src import eligibility                      # noqa: E402
+from src import eligibility, relevance, salary                      # noqa: E402
 from src.match import assess, is_new_grad_ok
 from src.scope import country_of                     # noqa: E402
 from src.models import Posting                   # noqa: E402
@@ -52,7 +52,11 @@ def build() -> dict:
         a = assess(p, pc, off)
         if not is_new_grad_ok(a, p.track):
             continue   # 경력직은 사이트에도 싣지 않는다
+        grade, grade_why = relevance.firm_grade(p, off)
+        if grade == "weak":
+            continue
         e = eligibility.judge(p, pc)
+        pay = salary.describe(p, pc, off.tier)
         posts.append({
             **d,
             "country": pc, "office_name": off.display_name,
@@ -62,6 +66,7 @@ def build() -> dict:
             "met": a.met, "unknowns": a.unknowns,
             "gate": e.gate, "gate_icon": e.icon, "gate_label": e.label("ko"),
             "outreach": d.get("_outreach"),
+            "grade": grade, "grade_why": grade_why, "pay": pay,
             "gate_reason": e.reason, "gate_evidence": e.evidence, "gate_action": e.action,
         })
 

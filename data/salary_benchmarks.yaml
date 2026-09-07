@@ -1,0 +1,51 @@
+# 업계 연봉 참고 범위
+#
+# ★ 이건 **회사별 실제 급여가 아니다.** 공고 대부분이 "면접 후 결정 / 회사 내규"라
+#   회사값을 알 수 없어서, 업계에서 통용되는 대략적인 범위를 참고용으로만 붙인다.
+#   화면에도 "업계 참고치 · 회사 값 아님"으로 표시한다.
+#   공고에 금액이 적혀 있으면 그게 우선이고 이 표는 보조로만 쓴다.
+#
+# 근거: 각국 건축설계 업계에서 통용되는 신입 초임 범위(2025~2026 기준 추정).
+#       정확도가 필요하면 크레딧잡·잡플래닛·OpenWork·104 를 직접 확인할 것.
+meta:
+  updated: "2026-09"
+  disclaimer: "업계 참고 범위 — 특정 회사의 실제 급여가 아님"
+
+KR:
+  currency: KRW
+  unit: 만원/년
+  tiers:
+    large:     { newgrad: [3600, 4300], mid_career: [4500, 6000],
+                 note: "희림·정림·간삼급 대형 종합건축사사무소" }
+    corporate: { newgrad: [4800, 5600], mid_career: [6000, 8000],
+                 note: "현대건설·포스코 등 대기업 건설사 (설계직 포함)" }
+    mid:       { newgrad: [3000, 3600], mid_career: [3800, 5000],
+                 note: "중견 설계사무소" }
+    atelier:   { newgrad: [2800, 3400], mid_career: [3500, 4500],
+                 note: "아틀리에계 — 규모 작고 초임 낮은 편" }
+    global:    { newgrad: [4000, 5000], mid_career: [5500, 7500],
+                 note: "외국계 서울오피스" }
+
+JP:
+  currency: JPY
+  unit: 万円/年
+  tiers:
+    large:     { newgrad: [450, 550], mid_career: [600, 850],
+                 note: "日建設計·三菱地所設計 등 조직설계" }
+    corporate: { newgrad: [500, 600], mid_career: [700, 950],
+                 note: "ゼネコン 설계부 (竹中·大林 등)" }
+    mid:       { newgrad: [380, 450], mid_career: [480, 620] }
+    atelier:   { newgrad: [300, 380], mid_career: [400, 520],
+                 note: "아틀리에계 — 초임이 낮고 잔업이 많은 편" }
+    global:    { newgrad: [420, 520], mid_career: [600, 800],
+                 note: "외국계 도쿄오피스" }
+
+TW:
+  currency: TWD
+  unit: 萬元/年
+  tiers:
+    large:     { newgrad: [50, 65], mid_career: [70, 95],
+                 note: "潘冀·大元 등 대형 사무소" }
+    mid:       { newgrad: [42, 52], mid_career: [55, 75] }
+    atelier:   { newgrad: [38, 48], mid_career: [50, 65] }
+    global:    { newgrad: [55, 70], mid_career: [80, 110] }

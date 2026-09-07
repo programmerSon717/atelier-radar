@@ -31,7 +31,10 @@ DETAIL_HINT = re.compile(
     r"新卒|中途|募集要項|採用情報|エントリー|インターン|キャリア|"
     r"신입|모집|채용|공고|지원|인턴|"
     r"職缺|徵才|招募|實習|應徵|"
-    r"recruit|career|job|position|intern|apply|opening|vacan",
+    r"recruit|career|job|position|intern|apply|opening|vacan|"
+    # 작품·프로젝트 페이지도 본다 — 문의 메일에 "귀사의 OO 프로젝트" 를 쓰려면
+    # 그 사무소가 실제로 뭘 지었는지 알아야 한다
+    r"projects?|works?|portfolio|作品|実績|プロジェクト|作品集|案例|實績|프로젝트|작품|실적",
     re.I,
 )
 # 따라가면 안 되는 것들

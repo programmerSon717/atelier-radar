@@ -176,7 +176,7 @@ function row(p) {
     p.deadline ? `<span class="${dl !== null && dl <= 14 ? "due" : ""}">${p.expired ? "마감됨" : "마감"} ${E(p.deadline)}${dl !== null && dl >= 0 && dl <= 30 ? ` (D-${dl})` : ""}</span>` : "",
   ].filter(Boolean);
 
-  const facts = [["고용형태", p.employment_type], ["급여", p.salary],
+  const facts = [["고용형태", p.employment_type],
                  ["전형", p.process], ["언어 요건", p.language_required]]
     .filter(([, v]) => v).map(([k, v]) => `${E(k)}: ${E(v)}`);
 
@@ -193,6 +193,13 @@ function row(p) {
           p.contact_phone ? `☎️ ${E(p.contact_phone)}` : "",
           p.apply_how ? E(p.apply_how) : ""].filter(Boolean).join("<br>")}</p></div>` : "",
     bullets(p.firm_projects, "이 사무소 프로젝트"),
+    p.pay ? `<div><h4>연봉</h4><p>${[
+        p.pay.stated ? `공고 명시: <b>${E(p.pay.stated)}</b>`
+                     : (p.salary ? `공고 명시: ${E(p.salary)} <span style="opacity:.6">(금액 없음)</span>` : ""),
+        p.pay.benchmark ? `업계 참고(신입): <b>${E(p.pay.benchmark.range)}</b>` : "",
+        p.pay.benchmark?.note ? `<span style="opacity:.75">${E(p.pay.benchmark.note)}</span>` : "",
+        p.pay.benchmark ? `<span style="opacity:.6">※ ${E(p.pay.benchmark.disclaimer)}</span>` : "",
+      ].filter(Boolean).join("<br>")}</p></div>` : "",
     bullets(p.blockers_desc, "걸리는 조건"),
     bullets(p.soft_desc, "준비하면 넘는 조건"),
     bullets(p.met, "충족하는 조건"),

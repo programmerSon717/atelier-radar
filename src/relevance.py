@@ -63,3 +63,43 @@ def label(posting, office) -> list[str]:
 def is_low_fit(labels: list[str]) -> bool:
     """설계직이 아니거나 시공사면 우선순위를 낮춘다."""
     return any(l.startswith(("🔧", "🏗")) for l in labels)
+
+
+# ── 사무소 수준 판정 ───────────────────────────────────────────────
+# 후보자는 Brown 학부 + Columbia GSAPP M.Arch 다. 설계 역량을 쌓을 수 없는 곳에
+# 보내는 건 시간 낭비다. 다만 "작아 보인다" 같은 인상으로 자르지 않는다 —
+# 공고에서 확인할 수 있는 사실만 근거로 쓴다.
+
+# 설계 사무소로서 최소한의 신호 (하나라도 있으면 통과)
+GOOD_SIGNAL = re.compile(
+    r"수상|공모|당선|현상설계|국제\s*설계|해외\s*프로젝트|출판|전시|"
+    r"포트폴리오\s*심사|실기\s*시험|BIM|Rhino|Revit|Grasshopper|친환경|"
+    r"미술관|박물관|문화시설|공공건축|마스터플랜|도시설계|"
+    r"受賞|コンペ|国際|美術館|博物館|"
+    r"競圖|得獎|美術館|博物館|"
+    r"award|competition|international|museum|cultural|master ?plan", re.I)
+
+# 설계보다 인허가·도면 대행에 가까운 곳의 신호
+LOW_SIGNAL = re.compile(
+    r"인허가\s*대행|허가\s*방|도면\s*대행|캐드\s*대행|단기\s*아르바이트|"
+    r"아르바이트|알바|파트타임|일용|초대졸|고졸", re.I)
+
+
+def firm_grade(posting, office) -> tuple[str, str]:
+    """('good'|'plain'|'weak', 이유). 공고에서 읽히는 것만 근거로 삼는다."""
+    # 우리가 직접 고른 타겟(대형·아틀리에·글로벌)은 이미 검증된 곳이다
+    if office.tier in ("large", "global", "atelier", "mid"):
+        return "good", f"추적 대상 사무소 ({office.tier})"
+
+    blob = " ".join(filter(None, [
+        posting.title, posting.company, posting.summary,
+        *(posting.qualifications or []), *(posting.preferred or []),
+        *(posting.responsibilities or []), *(posting.software or []),
+    ]))
+    m = LOW_SIGNAL.search(blob)
+    if m:
+        return "weak", f"설계 실무와 거리가 있음 — {m.group(0).strip()}"
+    g = GOOD_SIGNAL.search(blob)
+    if g:
+        return "good", f"설계 역량 신호 — {g.group(0).strip()}"
+    return "plain", "설계사무소로 보이나 규모·성격을 판단할 근거가 공고에 없음"
