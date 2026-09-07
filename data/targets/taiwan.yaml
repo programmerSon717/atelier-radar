@@ -78,6 +78,43 @@ offices:
     eng_ok: unknown
     verified: false
 
+  # ── 추가 아틀리에 ──
+  - id: tw-fieldoffice
+    name: { zh: "田中央工作群", en: "Fieldoffice Architects" }
+    city: 宜蘭
+    tier: atelier
+    note: "★ 黃聲遠. 대만을 대표하는 아틀리에"
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: tw-ambi
+    name: { zh: "廖偉立建築師事務所 / AMBi Studio", en: "AMBi Studio" }
+    city: 台中
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: tw-divooe
+    name: { zh: "自然洋行建築設計團隊", en: "Divooe Zein Architects" }
+    city: 台北
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: tw-dsdesign
+    name: { zh: "大尺建築", en: "DS Design / Kuo Hsu-Yuan" }
+    city: 台北
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: tw-likou
+    name: { zh: "力口建築", en: "Atelier Or" }
+    city: 台北
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
 job_boards:
   - { name: "104人力銀行", url: "https://www.104.com.tw", note: "建築設計 키워드" }
   - { name: "1111人力銀行", url: "https://www.1111.com.tw" }

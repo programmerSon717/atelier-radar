@@ -231,6 +231,95 @@ offices:
     eng_ok: likely
     verified: true
 
+  # ── 추가 아틀리에 (사용자 지시: "101·켄고쿠마 급을 가져와라") ──
+  # 채용 URL 이 없어도 목록에 있으면 잡보드 공고를 이름으로 알아본다 (targets.match_office).
+  - id: kr-iroje
+    name: { ko: "이로재", en: "IROJE architects & planners" }
+    city: 서울
+    tier: atelier
+    note: "승효상. 한국 현대건축의 대표 아틀리에"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-bcho
+    name: { ko: "조병수건축연구소", en: "BCHO Partners" }
+    city: 서울
+    tier: atelier
+    note: "조병수. 땅집·수곡동주택 등"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-systemlab
+    name: { ko: "시스템랩", en: "System Lab" }
+    city: 서울
+    tier: atelier
+    note: "김찬중. 폴스미스·KEB하나은행 플레이스원"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-soa
+    name: { ko: "에스오에이", en: "SoA (Society of Architecture)" }
+    city: 서울
+    tier: atelier
+    note: "강예린·이치훈. 젊은건축가상"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-obba
+    name: { ko: "오비비에이", en: "OBBA" }
+    city: 서울
+    tier: atelier
+    note: "이소정·곽상준. 젊은건축가상"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-joho
+    name: { ko: "조호건축", en: "JOHO Architecture" }
+    city: 서울
+    tier: atelier
+    note: "이정훈. 국제 수상 다수"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-oca
+    name: { ko: "오씨에이건축", en: "OCA Architects" }
+    city: 서울
+    tier: atelier
+    note: "임재용"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-archium
+    name: { ko: "아르키움", en: "ARCHIUM" }
+    city: 서울
+    tier: atelier
+    note: "김인철"
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: kr-gaa
+    name: { ko: "가아건축사사무소", en: "GAA Architects" }
+    city: 서울
+    tier: atelier
+    note: "최문규. 연세대"
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: kr-hyunjoonyoo
+    name: { ko: "유현준건축사사무소", en: "Hyunjoon Yoo Architects" }
+    city: 서울
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: kr-spacegroup
+    name: { ko: "공간종합건축사사무소", en: "SPACE Group" }
+    city: 서울
+    tier: mid
+    note: "김수근 이래의 설계사무소. 월간 SPACE 발행"
+    hiring_types: [new_grad, intern]
+    eng_ok: unknown
+    verified: false
 job_boards:
   - { name: "사람인", url: "https://www.saramin.co.kr", note: "건축설계 키워드 검색" }
   - { name: "잡코리아", url: "https://www.jobkorea.co.kr" }

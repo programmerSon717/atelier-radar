@@ -87,6 +87,12 @@ def build() -> dict:
         a = assess(p, pc, off)
         if not is_new_grad_ok(a, p.track):
             continue   # 경력직은 사이트에도 싣지 않는다
+        if relevance.career_only(p) or relevance.special_track(p):
+            continue
+        if relevance.is_low_fit(relevance.label(p, off)):
+            continue   # 설계직 아님·시공사
+        if not relevance.worth_applying(p, off)[0]:
+            continue   # 이름 모를 사무소는 사이트에도 싣지 않는다 (발송 기준과 동일)
         if relevance.drop_for_no_degree(p, off):
             continue   # 학력무관 공고는 사이트에도 싣지 않는다 (발송 단계와 같은 기준)
         grade, grade_why = relevance.firm_grade(p, off)

@@ -162,6 +162,79 @@ offices:
     eng_ok: unlikely
     verified: false
 
+  # ── 추가 아틀리에·대형 (설계로 이름난 곳만) ──
+  - id: jp-ishigami
+    name: { ja: "石上純也建築設計事務所", en: "junya.ishigami+associates" }
+    city: 東京
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: jp-hirata
+    name: { ja: "平田晃久建築設計事務所", en: "Akihisa Hirata Architecture Office" }
+    city: 東京
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: jp-inui
+    name: { ja: "乾久美子建築設計事務所", en: "Inui Architects" }
+    city: 東京
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: jp-nap
+    name: { ja: "中村拓志&NAP建築設計事務所", en: "NAP Architects" }
+    city: 東京
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: jp-atta
+    name: { ja: "ATTA / 田根剛", en: "Atelier Tsuyoshi Tane Architects" }
+    city: 東京
+    tier: atelier
+    note: "파리·도쿄. 영어 사용 환경"
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: jp-suppose
+    name: { ja: "サポーズデザインオフィス", en: "SUPPOSE DESIGN OFFICE" }
+    city: 東京
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: jp-nendo
+    name: { ja: "nendo", en: "nendo" }
+    city: 東京
+    tier: atelier
+    hiring_types: [year_round, intern]
+    eng_ok: likely
+    verified: false
+  - id: jp-riken
+    name: { ja: "山本理顕設計工場", en: "Riken Yamamoto & Field Shop" }
+    city: 横浜
+    tier: atelier
+    note: "2024 프리츠커"
+    hiring_types: [year_round, intern]
+    eng_ok: unknown
+    verified: false
+  - id: jp-tohata
+    name: { ja: "東畑建築事務所", en: "TOHATA ARCHITECTS" }
+    city: 大阪
+    tier: large
+    hiring_types: [new_grad, intern]
+    eng_ok: unknown
+    verified: false
+  - id: jp-azusa
+    name: { ja: "梓設計", en: "AZUSA SEKKEI" }
+    city: 東京
+    tier: large
+    hiring_types: [new_grad, intern]
+    eng_ok: unknown
+    verified: false
 job_boards:
   - { name: "リクナビ", url: "https://job.rikunabi.com", note: "新卒 전용" }
   - { name: "マイナビ", url: "https://job.mynavi.jp", note: "新卒 전용" }

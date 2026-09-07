@@ -121,7 +121,25 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
             if nd and cfg.get("filter", {}).get("drop_no_degree", True):
                 print(f"[skip] {office_id}: {p.title} — 학력무관 ({nd})", file=sys.stderr)
                 continue
+            # 갈 만한 곳인지부터 본다. 이름 모를 사무소 공고가 쏟아지면 정작 봐야 할
+            # 공고가 묻힌다 (사용자 지시: 101·켄고쿠마 급을 가져와라)
+            if relevance.career_only(p):
+                print(f"[skip] {office_id}: {p.title} — 제목이 경력직 전용", file=sys.stderr)
+                continue
+            st = relevance.special_track(p)
+            if st:
+                print(f"[skip] {office_id}: {p.title} — 특정 대상 전형({st})", file=sys.stderr)
+                continue
+            ok_firm, why_firm = relevance.worth_applying(p, office)
+            if not ok_firm and cfg.get("filter", {}).get("known_firms_only", True):
+                print(f"[skip] {office_id}: {p.title} — {why_firm}", file=sys.stderr)
+                continue
             # 설계 역량을 쌓을 수 없는 곳은 보내지 않는다 (근거 있는 경우만 제외)
+            # 설계직이 아니거나 시공사면 보내지 않는다 (라벨만 붙여 보내면 목록이 흐려진다)
+            if relevance.is_low_fit(relevance.label(p, office)) \
+                    and cfg.get("filter", {}).get("drop_low_fit", True):
+                print(f"[skip] {office_id}: {p.title} — 설계직 아님/시공사", file=sys.stderr)
+                continue
             grade, why = relevance.firm_grade(p, office)
             if grade == "weak" and cfg.get("filter", {}).get("drop_weak_firms", True):
                 print(f"[skip] {office_id}: {p.title} — {why}", file=sys.stderr)

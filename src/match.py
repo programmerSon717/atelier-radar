@@ -25,7 +25,8 @@ ZH_LANG = re.compile(r"中文|mandarin|chinese|중국어", re.I)
 EN_ONLY = re.compile(r"english[ -]?only|영어만|英語のみ", re.I)
 
 EXP_YEARS = re.compile(r"(\d+)\s*(?:\+|년|年|years?)", re.I)
-VAGUE_EXP = re.compile(r"a few years|several years|수년|数年|數年", re.I)
+VAGUE_EXP = re.compile(r"a few years|several years|수년|数年|數年|"
+                       r"中途採用|実務経験者|経験者対象|実務経験\s*(?:必須|が必要)", re.I)
 
 # 중화권·일본 공고는 경력 연수를 한자로 쓴다. "三年以上之工作經驗" 을 못 읽으면
 # 경력직 공고가 신입 공고인 채로 새어 나간다 (실제로 2건이 발송됐다).

@@ -40,3 +40,19 @@ postings:
       preferred:
         - "안전분야 자격증 소지자"
       notes: "어학성적 제출 대상에서 '영미권 소재 해외 대학 졸업(예정)자 제외' 라는 단서가 붙어 있다. 면제인지 지원 배제인지 공고만으로는 갈리지 않는다 — 문의 필요."
+
+  # data/verified/kkaa.yaml 에 이미 확인해 둔 사실 — 정규직은 경력직이고
+  # 인턴 경력은 경력으로 쳐주지 않는다고 공고가 명시한다. 신입은 지원 자체가 안 된다.
+  - url: "https://kkaa.co.jp/en/recruit/architect-staff/"
+    checked_at: "2026-09-06"
+    source: "kkaa.co.jp 채용페이지 원문 (data/verified/kkaa.yaml)"
+    fields:
+      experience_required: "Professional experiences as an active full time office architect (not include internships) in the international field for a few years or more"
+      language_required: "Tokyo: fluent English / Seoul: fluency in Korean + business-level Japanese or English"
+
+  # 石本建築事務所의 이 페이지는 中途採用(경력) 페이지다. 신입 공고가 아니다.
+  - url: "https://www.ishimoto.co.jp/recruit/career/"
+    checked_at: "2026-09-07"
+    source: "ishimoto.co.jp/recruit/career/ — 中途採用 페이지"
+    fields:
+      experience_required: "中途採用 — 実務経験者対象"

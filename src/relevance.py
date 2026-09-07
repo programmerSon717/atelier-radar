@@ -13,6 +13,7 @@ NOT_DESIGN = re.compile(
     r"CAD\s*오퍼레이터|캐드\s*원|모델링\s*알바|"
     # 일본어 — 営業職 이 설계직으로 통과하고 있었다 (NOMURA 4건)
     r"営業職|営業担当|施工管理|現場監督|積算|購買|人事職|経理職|"
+    r"構造設計|設備設計|電気設備|機械設備|構造・環境|"
     # 번체 중문 — 日文의 業務(=업무)와 겹치므로 반드시 직무명 통째로만 잡는다
     r"業務專員|業務助理|工地主任|監造|估價|繪圖員|"
     r"sales|estimat|site\s*supervis|procurement", re.I)
@@ -250,8 +251,67 @@ def fit_grade(posting, office, assessment, labels: list[str] | None = None
     if office.eng_ok in ("yes", "partial") or any(l.startswith("🌏") for l in labels):
         reasons.append("외국인·영어 관련 신호 있음")
 
-    if strong_firm and overlap:
+    if strong_firm and (overlap or office.tier == "atelier"):
         return "recommend", reasons
     if strong_firm and office.priority == "high":
         return "recommend", reasons + ["우선 추적 대상 사무소"]
     return "neutral", reasons or ["판단할 근거가 공고에 부족함"]
+
+
+# ── 갈 만한 곳인가 (발송 자체를 가르는 기준) ─────────────────
+# 사용자 지시: "101 아키텍스나 켄고쿠마 같은 데를 뽑아야지, 노가다 사무소 말고."
+# 잡보드 검색에는 이름 모를 사무소가 잔뜩 섞여 들어온다. 그걸 다 보내면 정작 봐야 할
+# 공고가 묻힌다. 그래서 **우리가 고른 사무소이거나, 설계로 이름났다는 근거가 공고에
+# 있는 곳**만 내보낸다. 도구 이름(Revit·BIM)은 근거로 치지 않는다 — 어디나 쓴다.
+STRONG_SIGNAL = re.compile(
+    r"수상|공모전?\s*당선|현상\s*설계|국제\s*설계\s*공모|건축상|젊은건축가|"
+    r"미술관|박물관|문화\s*시설|아틀리에|"
+    r"受賞|コンペ|設計競技|美術館|博物館|文化施設|"
+    r"得獎|競圖|美術館|博物館|文化中心|"
+    r"award[- ]?winning|competition\s*win|museum|cultural\s*cent|master\s?plan", re.I)
+
+
+# 제목이 대놓고 경력직인 공고. 요건란이 비어 있어도 이건 신입 자리가 아니다.
+CAREER_ONLY_TITLE = re.compile(
+    r"경력\s*(?:사원|직|자)\s*(?:채용|모집|공고)|경력\s*채용|"
+    r"中途採用|キャリア採用|経験者採用|"
+    r"儲備幹部\s*\(有經驗\)|"
+    r"experienced\s+(?:architect|designer)|mid[- ]career", re.I)
+NEW_GRAD_TITLE = re.compile(r"신입|인턴|新卒|新入|インターン|應屆|實習|new\s?grad|intern", re.I)
+
+
+def career_only(posting) -> bool:
+    """제목만으로 경력직이라고 못 박은 공고인가 (신입 언급이 함께 없을 때)."""
+    t = posting.title or ""
+    return bool(CAREER_ONLY_TITLE.search(t)) and not NEW_GRAD_TITLE.search(t)
+
+
+# 특정 대상에게만 열린 전형. 후보자는 해당하지 않는다.
+SPECIAL_TRACK = re.compile(r"障がい者採用|障害者採用|장애인\s*(?:채용|전형)|"
+                           r"보훈|국가유공자\s*전형|체험형\s*인턴\s*\(고졸\)", re.I)
+
+
+def special_track(posting) -> str | None:
+    m = SPECIAL_TRACK.search(" ".join(filter(None, [posting.title, posting.summary])))
+    return m.group(0) if m else None
+
+
+def worth_applying(posting, office) -> tuple[bool, str]:
+    """이 공고를 내보낼 가치가 있는가. (보낼까, 이유)"""
+    if office is not None and office.tier in VERIFIED_TIERS:
+        return True, f"추적 대상 사무소 ({office.tier})"
+
+    from .targets import match_office
+    known = match_office(getattr(posting, "company", None), posting.title)
+    if known is not None:
+        return True, f"추적 목록의 {known.display_name}"
+
+    blob = " ".join(filter(None, [
+        posting.title, posting.company,
+        *(posting.responsibilities or []), *(posting.qualifications or []),
+        *(posting.preferred or []),
+    ]))
+    m = STRONG_SIGNAL.search(blob)
+    if m:
+        return True, f"설계로 이름났다는 근거 — {m.group(0).strip()}"
+    return False, "이름 모를 사무소이고, 설계 역량을 확인할 근거가 공고에 없음"
