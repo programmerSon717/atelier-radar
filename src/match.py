@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Literal, Optional
 
-from . import relevance
+from . import clock, relevance
 from .models import Posting
 
 Verdict = Literal["fit", "conditional", "blocked", "unknown", "expired"]
@@ -50,22 +50,20 @@ class Assessment:
     expired: bool = False
 
 
-def _deadline_check(p: Posting, a: Assessment) -> None:
+def _deadline_check(p: Posting, a: Assessment, country: str) -> None:
     """이미 마감된 공고를 새 공고처럼 보내면 안 된다.
     다만 버리지도 않는다 — "이 회사 공채는 8월에 마감된다"는 것 자체가
     내년을 준비하는 데 필요한 정보다."""
     if not p.deadline:
         return
-    m = ISO_DATE.search(p.deadline)
-    if not m:
+    left = clock.days_left(p.deadline, country)
+    if left is None:
         return
-    try:
-        dl = date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
-    except ValueError:
-        return
-    if dl < date.today():
+    if left < 0:
         a.expired = True
-        a.blockers_desc.append(f"이미 마감됨 ({dl.isoformat()}) — 다음 사이클 참고용")
+        m = ISO_DATE.search(p.deadline)
+        a.blockers_desc.append(
+            f"이미 마감됨 ({m.group(0)} 현지시각) — 다음 사이클 참고용")
 
 
 def _flag(explicit: Optional[bool], pattern: re.Pattern, text: str) -> Optional[bool]:
@@ -173,7 +171,7 @@ def assess(p: Posting, country: str, office=None) -> Assessment:
     _timing_check(p, a, country)
     _visa_check(p, a, country)
 
-    _deadline_check(p, a)
+    _deadline_check(p, a, country)
     a.labels.extend(relevance.label(p, office))
     if relevance.is_low_fit(a.labels):
         a.soft_blockers.append("직무 적합성 낮음")

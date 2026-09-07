@@ -148,7 +148,9 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
         print("\n" + "=" * 60 + "\n" + summary)
     elif sent or errors:
         await notify.send(summary)
-    print(f"[done] {date.today()} 신규 {sent}건, 오류 {len(errors)}건", file=sys.stderr)
+    from .clock import today_in
+    print(f"[done] 로컬 {date.today()} / 한국 {today_in('KR')} — "
+          f"신규 {sent}건, 오류 {len(errors)}건", file=sys.stderr)
     return 0
 
 

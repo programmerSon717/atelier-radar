@@ -17,9 +17,21 @@ const TRACK = { new_grad: "신입공채", intern: "인턴", intern_to_fulltime: 
 let DATA = null;
 const state = { country: "all", gates: new Set(), q: "", view: "live" };
 
-function daysLeft(d) {
+// 마감은 반드시 **공고가 있는 나라 시각**으로 센다.
+// 브라우저는 보는 사람의 시간대(미국 동부 등)를 쓰는데, 한국과 13~14시간 차이가 나서
+// 그대로 계산하면 이미 끝난 공고가 "오늘 마감"으로 보인다. 실제로 그렇게 틀렸다.
+const TZ_OFFSET = { KR: 9, JP: 9, TW: 8 };   // 셋 다 서머타임 없음
+
+function todayIn(country) {
+  const off = TZ_OFFSET[country] ?? 9;
+  const t = new Date(Date.now() + off * 3600000);
+  return t.toISOString().slice(0, 10);       // 그 나라의 '오늘'
+}
+
+function daysLeft(d, country) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d || "")) return null;
-  return Math.ceil((new Date(d + "T23:59:59") - new Date()) / 86400000);
+  const today = todayIn(country);
+  return Math.round((Date.parse(d + "T00:00:00Z") - Date.parse(today + "T00:00:00Z")) / 86400000);
 }
 
 function render() {
@@ -35,7 +47,7 @@ function render() {
     </button>`).join("");
 
   // 상황별 안내 — 지금 데이터에서 실제로 셀 수 있는 것만 말한다
-  const soon = P.filter(p => { const d = daysLeft(p.deadline); return d !== null && d >= 0 && d <= 14; });
+  const soon = P.filter(p => { const d = daysLeft(p.deadline, p.country); return d !== null && d >= 0 && d <= 14; });
   const openTw = P.filter(p => p.gate === "open" && p.country === "TW").length;
   const openOther = P.filter(p => p.gate === "open" && p.country !== "TW").length;
   const intern = P.filter(p => /intern/.test(p.track) && p.gate !== "closed").length;
@@ -44,7 +56,7 @@ function render() {
      `<b>지원 가능 ${gc.open || 0}건</b> — 대만 ${openTw} · 그 외 ${openOther}`],
     ["마감이 임박한 게 있는지 보고 싶다",
      soon.length ? `<b>2주 내 마감 ${soon.length}건</b> — ${soon.slice(0,3).map(s=>{
-       const d=daysLeft(s.deadline);
+       const d=daysLeft(s.deadline, s.country);
        return `${E(s.company||s.office_name)} <b>${d===0?"오늘 마감":"D-"+d}</b>`;}).join(" · ")}` : "2주 내 마감 없음"],
     ["일단 인턴으로 발을 들이고 싶다", `<b>인턴·전환형 ${intern}건</b>`],
     ["한국어가 안 되는데 한국도 되나",
@@ -70,10 +82,10 @@ function render() {
     list.sort((a, b) => String(b.deadline || "").localeCompare(String(a.deadline || "")));
   } else {
     // 마감이 임박한 건 게이트보다 먼저다. 오늘 마감을 아래에 두면 놓친다
-    const urg = (p) => { const d = daysLeft(p.deadline); return d !== null && d <= 3 ? 0 : 1; };
+    const urg = (p) => { const d = daysLeft(p.deadline, p.country); return d !== null && d <= 3 ? 0 : 1; };
     list.sort((a, b) => (urg(a) - urg(b))
       || (rank[a.gate] - rank[b.gate])
-      || ((daysLeft(a.deadline) ?? 9e3) - (daysLeft(b.deadline) ?? 9e3)));
+      || ((daysLeft(a.deadline, a.country) ?? 9e3) - (daysLeft(b.deadline, b.country) ?? 9e3)));
   }
 
   const inC = (p) => state.country === "all" || p.country === state.country;
@@ -152,7 +164,7 @@ function row(p) {
       </div></article>`;
   }
   const g = GATES.find(x => x.k === p.gate) || GATES[1];
-  const dl = daysLeft(p.deadline);
+  const dl = daysLeft(p.deadline, p.country);
   const meta = [
     FLAG[p.country] + " " + E(p.location || p.office_name),
     TRACK[p.track] || p.track,
