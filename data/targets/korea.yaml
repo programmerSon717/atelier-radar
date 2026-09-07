@@ -64,7 +64,8 @@ offices:
   # ── 아틀리에계 / 디자인 중심 (영어 가능성 높음) ──
   - id: kr-101
     name: { ko: "원오원 아키텍스", en: "ONE O ONE architects (101)" }
-    careers_url: "https://www.101architects.com/"
+    careers_url: "https://vmspace.com/job/job_view.html?base_seq=MTM1NjE%3D"
+    fetch_note: "자사 사이트(http://101-architects.com)엔 채용란이 없다. 공고는 월간 SPACE 게시판에 올라온다"
     city: 서울
     tier: atelier
     note: "★ 사용자 직접 지목. 최욱. 소규모 — 상시채용/포트폴리오 심사 방식 추정"
@@ -140,6 +141,17 @@ offices:
     verified: false
 
   # ── 잡보드 검색 (개별 사무소 사이트가 SPA/404 라서 업계 전체를 여기서 훑는다) ──
+  - id: kr-board-vmspace
+    name: { ko: "월간 SPACE · 채용 게시판", en: "SPACE magazine — job board" }
+    careers_url: "https://vmspace.com/job/job.html"
+    city: 서울
+    tier: job_board
+    note: "★ 한국 건축계 전용 구인 게시판. 설계사무소 공고가 여기로 올라온다 (사람인보다 정확)"
+    hiring_types: [new_grad, intern, year_round]
+    eng_ok: unknown
+    verified: true
+    priority: high
+
   - id: kr-board-saramin
     name: { ko: "사람인 · 건축설계 검색", en: "Saramin — architecture search" }
     careers_url: "https://www.saramin.co.kr/zf_user/search?searchType=search&searchword=%EA%B1%B4%EC%B6%95%EC%84%A4%EA%B3%84"

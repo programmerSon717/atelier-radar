@@ -57,6 +57,28 @@ def _tags(p: Posting, office: Office, elig) -> str:
     return " ".join(f"#{x}" for x in dict.fromkeys(out) if x)
 
 
+def _urgency(p: Posting) -> str | None:
+    """마감이 코앞이면 맨 위에 띄운다. 내일 마감인 공고를 목록 중간에서 발견하면 늦는다."""
+    import re
+    from datetime import date
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})", p.deadline or "")
+    if not m:
+        return None
+    try:
+        d = (date(int(m[1]), int(m[2]), int(m[3])) - date.today()).days
+    except ValueError:
+        return None
+    if d < 0:
+        return None
+    if d == 0:
+        return "🚨 <b>오늘 마감</b> — 오늘 안에 접수해야 한다"
+    if d <= 3:
+        return f"🚨 <b>D-{d} 마감 임박</b>"
+    if d <= 7:
+        return f"⏳ <b>D-{d}</b>"
+    return None
+
+
 def render_posting(p: Posting, office: Office, a: Assessment, L: dict,
                    elig=None, kit=None) -> str:
     """텔레그램 메시지. 섹션 이모지 + 인용구로 훑기 쉽게 나눈다."""
@@ -68,7 +90,8 @@ def render_posting(p: Posting, office: Office, a: Assessment, L: dict,
     track = L["track_label"].get(p.track, p.track)
     flag = COUNTRY_FLAG.get(office.country, "🏛")
 
-    out = [
+    urgent = _urgency(p)
+    out = ([urgent, ""] if urgent else []) + [
         f"{flag} <b>{_esc(who)}</b>",
         f"🏛 <b>{_esc(p.title)}</b>",
         "",

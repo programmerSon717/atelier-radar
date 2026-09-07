@@ -38,13 +38,14 @@ DETAIL_HINT = re.compile(
 SKIP_LINK = re.compile(r"\.(pdf|jpe?g|png|gif|zip|docx?|xlsx?)(?:[?#]|$)|^(mailto|tel|javascript):", re.I)
 
 MAX_FOLLOW = 5        # 랜딩 1개당 따라갈 하위 페이지 수 상한
-MAX_BOARD_FOLLOW = 8  # 잡보드 검색결과에서 열어볼 개별 공고 수
+MAX_BOARD_FOLLOW = 12  # 잡보드 목록에서 열어볼 개별 공고 수
 
 # 잡보드의 개별 공고 상세 주소 패턴. 목록 페이지만 읽으면 JD 본문이 통째로 빠진다.
 BOARD_DETAIL = re.compile(
     r"saramin\.co\.kr/zf_user/jobs/relay/view\?.*rec_idx=|"
     r"jobkorea\.co\.kr/Recruit/GI_Read/|"
-    r"518\.com\.tw/job-|104\.com\.tw/job/", re.I)
+    r"518\.com\.tw/job-|104\.com\.tw/job/|"
+    r"vmspace\.com/job/job_view\.html", re.I)
 
 
 # 사람인 데스크톱 상세는 JD 본문을 JS 로 그려서 텍스트가 안 나온다.

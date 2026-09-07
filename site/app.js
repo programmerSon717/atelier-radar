@@ -43,7 +43,9 @@ function render() {
     ["지금 바로 넣을 수 있는 곳부터 보고 싶다",
      `<b>지원 가능 ${gc.open || 0}건</b> — 대만 ${openTw} · 그 외 ${openOther}`],
     ["마감이 임박한 게 있는지 보고 싶다",
-     soon.length ? `<b>2주 내 마감 ${soon.length}건</b> — ${E(soon.slice(0,2).map(s=>s.company||s.office_name).join(", "))}` : "2주 내 마감 없음"],
+     soon.length ? `<b>2주 내 마감 ${soon.length}건</b> — ${soon.slice(0,3).map(s=>{
+       const d=daysLeft(s.deadline);
+       return `${E(s.company||s.office_name)} <b>${d===0?"오늘 마감":"D-"+d}</b>`;}).join(" · ")}` : "2주 내 마감 없음"],
     ["일단 인턴으로 발을 들이고 싶다", `<b>인턴·전환형 ${intern}건</b>`],
     ["한국어가 안 되는데 한국도 되나",
      `한국 공고 대부분은 외국인 채용을 <b>언급하지 않는다</b>. 그건 불가가 아니라 미확인이라, <b>문의 필요 ${gc.ask||0}건</b>은 메일 한 통으로 갈린다`],
@@ -137,6 +139,7 @@ function row(p) {
         <span class="rtitle">${E(p.title)}</span>
         <span class="rfirm">${E(p.company || p.office_name)}</span>
       </div>
+      ${dl !== null && dl >= 0 && dl <= 3 ? `<p class="urgent">🚨 ${dl === 0 ? "오늘 마감" : "D-" + dl + " 마감 임박"}</p>` : ""}
       <div class="meta">${meta.map(m => `<span>${m}</span>`).join("<span>·</span>")}</div>
       <p class="why"><b>${E(p.gate_label)}</b> — ${E(p.gate_evidence || p.gate_reason)}</p>
       ${p.gate_action ? `<p class="act">👉 ${E(p.gate_action)}</p>` : ""}
