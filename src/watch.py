@@ -163,6 +163,11 @@ def extract_text(html: str) -> str:
 IFRAME_BODY = re.compile(r"GI_Read_Comt_Ifrm|user_content|jobDetail", re.I)
 
 
+# JobKorea 본문 iframe 은 JS 로 끼워넣어져서 정적 HTML 엔 없다. 다만 주소가
+# 공고 번호로 정해져 있어 직접 만들 수 있다 — 브라우저를 띄울 필요가 없다.
+JK_GNO = re.compile(r"jobkorea\.co\.kr/Recruit/GI_Read/(\d+)", re.I)
+
+
 def find_body_iframes(html: str, base_url: str) -> list[str]:
     tree = HTMLParser(html)
     out: dict[str, None] = {}
@@ -170,6 +175,11 @@ def find_body_iframes(html: str, base_url: str) -> list[str]:
         src = (f.attributes or {}).get("src") or ""
         if src and IFRAME_BODY.search(src):
             out.setdefault(urljoin(base_url, src), None)
+    m = JK_GNO.search(base_url)
+    if m:
+        out.setdefault(
+            "https://www.jobkorea.co.kr/Recruit/GI_Read_Comt_Ifrm"
+            f"?Gno={m.group(1)}&isHiringCenter=false", None)
     return list(out)
 
 

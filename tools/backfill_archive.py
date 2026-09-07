@@ -88,7 +88,7 @@ def parse_view(html: str, url: str) -> dict | None:
             "posted_at": posted, "deadline": deadline}
 
 
-async def crawl_ids(newest: int, count: int, concurrency: int = 3) -> list[dict]:
+async def crawl_ids(newest: int, count: int, concurrency: int = 2) -> list[dict]:
     """newest 부터 count 개만큼 id 를 거슬러 올라가며 상세를 읽는다."""
     sem = asyncio.Semaphore(concurrency)
     out: list[dict] = []
@@ -123,7 +123,7 @@ async def crawl_ids(newest: int, count: int, concurrency: int = 3) -> list[dict]
                     out.append(item)
             print(f"  … id {chunk[-1]} 까지 {len(out)}건 (이번 묶음 실패 {miss}/{len(chunk)})",
                   file=sys.stderr)
-            await asyncio.sleep(0.6)   # 서버에 숨 돌릴 틈을 준다
+            await asyncio.sleep(1.5)   # 서버에 숨 돌릴 틈을 준다
     return out
 
 
@@ -153,8 +153,9 @@ async def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--newest", type=int, default=13620, help="가장 최근 공고 id")
     ap.add_argument("--count", type=int, default=600, help="거슬러 올라갈 개수")
+    ap.add_argument("--concurrency", type=int, default=2, help="동시 요청 수")
     args = ap.parse_args()
-    items = await crawl_ids(args.newest, args.count)
+    items = await crawl_ids(args.newest, args.count, args.concurrency)
     new, years = save(items)
     print(f"수집 {len(items)}건 / 신규 {new}건 저장")
     for y in sorted(years, reverse=True):

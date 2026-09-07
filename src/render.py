@@ -50,8 +50,9 @@ def _tags(p: Posting, office: Office, elig) -> str:
          "entry_level": "신입", "year_round": "상시채용"}.get(p.track)
     if t:
         out.append(t)
-    out.append({"open": "지원가능", "ask": "문의필요",
-                "native": "언어장벽", "closed": "지원불가"}[elig.gate])
+    # 게이트가 늘어날 때 여기를 빠뜨리면 파이프라인이 통째로 죽는다. get 으로 받는다.
+    out.append({"open": "지원가능", "ask": "문의필요", "native": "언어장벽",
+                "domestic": "국내대학전형", "closed": "지원불가"}.get(elig.gate, "확인필요"))
     for sw in p.software[:3]:
         out.append(sw.replace(" ", ""))
     return " ".join(f"#{x}" for x in dict.fromkeys(out) if x)
