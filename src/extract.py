@@ -68,6 +68,14 @@ SYSTEM = """\
 - **아무 언급이 없으면 null 이다.** 없는 걸 있다고 하거나, 없다고 단정하지 마라.
   한국·일본 공고 대부분은 언급이 없다. 그게 정상이고, null 이 정답이다.
 
+### ★ 외국인 채용은 페이지 한 군데만 보고 판단하지 마라
+한국·일본 기업은 외국인 조건을 공고 본문이 아니라 **별도 안내·FAQ·자격요건 하단**에
+적어두는 일이 많다. 제공된 [PAGE] 들을 전부 훑어서 다음을 찾아라:
+- "외국인", "유학생", "국적", "비자", "체류자격", "재외국민", "글로벌", "해외인재"
+- "外国人", "留学生", "在留資格", "ビザ", "国籍"
+- TOPIK / 한국어능력시험 / JLPT / 日本語能力試験 + 급수
+하나라도 찾으면 foreigner_mentioned=true 로 두고 그 문장을 그대로 인용해라.
+
 ### 외국인을 뽑는다면 "어떤 외국인"인지가 결정적이다 (foreigner_target)
 한국·일본 기업의 외국인 채용은 대부분 **자국 대학에 다닌 유학생**을 뜻한다.
 이 후보자는 **미국 대학 졸업 · 대만 국적**이라 그 전형에는 해당하지 않는다.
@@ -76,6 +84,9 @@ SYSTEM = """\
 - "해외 대학 졸업자", "해외 우수인재", "글로벌 채용", "overseas university"
   → overseas_grad
 - 출신 대학을 안 따지면 → any / 외국인은 뽑는데 대상이 불분명하면 → unclear
+
+**대기업·대형 건설사일수록 국내 유학생 전형인 경우가 많다.** 근거 문장을 반드시 인용해라.
+근거 없이 overseas_grad 로 적으면 지원자가 헛수고를 한다. 확실하지 않으면 unclear 로 둔다.
 
 ### 어학시험 (language_test)
 TOPIK·JLPT·한국어능력시험 급수가 적혀 있으면 원문 그대로 옮겨라.
@@ -129,6 +140,14 @@ USER = """\
 위 텍스트에서 신입공채·인턴·전환형 인턴·상시채용 공고를 찾아 정리해라.
 언어 요건과 졸업연도 조건을 특히 빠뜨리지 마라. 없으면 없다고 적어라.
 {board_note}
+"""
+
+GLOBAL_NOTE = """
+## ★ 이 페이지는 글로벌 사무소의 전 세계 채용 목록이다
+- **한국·일본·대만 오피스 자리만** 골라라. 서울/Seoul, 東京/Tokyo/大阪, 台北/Taipei 등.
+- 뉴욕·런던·상하이·싱가포르·두바이 등 다른 나라 자리는 **넣지 마라.**
+- 각 posting 의 location 에 어느 오피스인지 반드시 적어라.
+- 해당하는 자리가 하나도 없으면 postings 를 빈 배열로 둔다. 그게 정상이다.
 """
 
 BOARD_NOTE = """
@@ -193,7 +212,8 @@ def extract_one(
         url=url,
         today=date.today().isoformat(),
         page_text=budget_pages(page_text),
-        board_note=BOARD_NOTE if (office.tier == "job_board") else "",
+        board_note=(BOARD_NOTE if office.tier == "job_board"
+                    else GLOBAL_NOTE if office.tier == "global" else ""),
     )
     rcfg = cfg["research"]
     attempts = rcfg.get("max_retries", 3)

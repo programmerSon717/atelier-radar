@@ -15,7 +15,7 @@ const TRACK = { new_grad: "신입공채", intern: "인턴", intern_to_fulltime: 
                 entry_level: "신입", year_round: "상시채용", other: "기타" };
 
 let DATA = null;
-const state = { country: "all", gates: new Set(), q: "", hideExpired: true };
+const state = { country: "all", gates: new Set(), q: "", view: "live" };
 
 function daysLeft(d) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d || "")) return null;
@@ -58,7 +58,7 @@ function render() {
   let list = P.filter(p =>
     (state.country === "all" || p.country === state.country) &&
     (state.gates.size === 0 || state.gates.has(p.gate)) &&
-    (!state.hideExpired || !p.expired) &&
+    (state.view === "past" ? p.expired : !p.expired) &&
     (!q || [p.title, p.company, p.office_name, p.location, (p.software || []).join(" ")]
         .join(" ").toLowerCase().includes(q)));
 
@@ -66,7 +66,12 @@ function render() {
   list.sort((a, b) => (rank[a.gate] - rank[b.gate])
     || ((daysLeft(a.deadline) ?? 9e3) - (daysLeft(b.deadline) ?? 9e3)));
 
-  document.getElementById("count").textContent = `${list.length} / ${P.length}건`;
+  const inC = (p) => state.country === "all" || p.country === state.country;
+  const live = P.filter(p => inC(p) && !p.expired).length;
+  const past = P.filter(p => inC(p) && p.expired).length;
+  document.querySelector('.chip[data-v="live"]').textContent = `진행중 ${live}`;
+  document.querySelector('.chip[data-v="past"]').textContent = `지난 공고 ${past}`;
+  document.getElementById("count").textContent = `${list.length}건 표시`;
   document.getElementById("rows").innerHTML = list.length
     ? list.map(row).join("")
     : `<p class="empty">조건에 맞는 공고가 없다. 필터를 넓혀 보라.</p>`;
@@ -79,7 +84,7 @@ function bullets(items, label) {
 
 function mailBlock(k) {
   const id = "m" + Math.random().toString(36).slice(2, 9);
-  return `<details class="mail"><summary>📨 문의 메일 초안 — 복사해서 보내면 된다</summary>
+  return `<details class="mail" open><summary>📨 문의 메일 초안 — 복사해서 보내면 된다</summary>
     <div class="jd" style="grid-template-columns:1fr">
       <div><h4>제목</h4><p>${E(k.subject)}</p></div>
       <div><h4>본문</h4><p id="${id}" style="white-space:pre-wrap">${E(k.body)}</p>
@@ -136,7 +141,7 @@ function row(p) {
       <p class="why"><b>${E(p.gate_label)}</b> — ${E(p.gate_evidence || p.gate_reason)}</p>
       ${p.gate_action ? `<p class="act">👉 ${E(p.gate_action)}</p>` : ""}
       ${p.summary ? `<p class="why">${E(p.summary)}</p>` : ""}
-      ${jd ? `<details><summary>상세 보기</summary><div class="jd">${jd}</div></details>` : ""}
+      ${jd ? `<div class="jd">${jd}</div>` : `<p class="thin">이 공고는 원문 페이지에 상세 내용이 없다. 출처를 직접 확인해야 한다.</p>`}
       ${p.outreach ? mailBlock(p.outreach) : ""}
       <p style="margin:10px 0 0"><a class="src" href="${E(p.source_url)}" target="_blank" rel="noopener">공고 원문 →</a></p>
     </div></article>`;
@@ -155,12 +160,12 @@ function bind() {
       x.setAttribute("aria-pressed", String(x === b)));
     render();
   }));
-  const he = document.getElementById("hide-expired");
-  he.addEventListener("click", () => {
-    state.hideExpired = !state.hideExpired;
-    he.setAttribute("aria-pressed", String(state.hideExpired));
+  document.querySelectorAll(".chip[data-v]").forEach(b => b.addEventListener("click", () => {
+    state.view = b.dataset.v;
+    document.querySelectorAll(".chip[data-v]").forEach(x =>
+      x.setAttribute("aria-pressed", String(x === b)));
     render();
-  });
+  }));
   document.getElementById("rows").addEventListener("click", async e => {
     const b = e.target.closest("[data-copy]"); if (!b) return;
     const t = document.getElementById(b.dataset.copy)?.innerText || "";

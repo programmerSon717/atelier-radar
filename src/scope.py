@@ -29,6 +29,16 @@ def posting_location_text(posting) -> str:
     return " ".join(filter(None, [posting.location, posting.title]))
 
 
+def country_of(posting, office_country: str) -> str:
+    """공고가 실제로 어느 나라 자리인지. 글로벌 사무소의 채용페이지는
+    한 페이지에 여러 나라 공고가 섞여 있어서, 사무소 국가로는 알 수 없다."""
+    text = posting_location_text(posting)
+    for code, pat in COUNTRY_PATTERNS.items():
+        if pat.search(text):
+            return code
+    return office_country
+
+
 def in_scope(posting, office_country: str) -> tuple[bool, str]:
     """(범위 안인지, 이유). 판단 근거가 전혀 없으면 사무소 국가를 믿고 통과시킨다."""
     text = posting_location_text(posting)

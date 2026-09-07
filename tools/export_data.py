@@ -13,7 +13,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from src import eligibility                      # noqa: E402
-from src.match import assess, is_new_grad_ok                     # noqa: E402
+from src.match import assess, is_new_grad_ok
+from src.scope import country_of                     # noqa: E402
 from src.models import Posting                   # noqa: E402
 from src.targets import load_offices             # noqa: E402
 
@@ -47,13 +48,14 @@ def build() -> dict:
         off = by.get(p.office_id)
         if off is None:
             continue
-        a = assess(p, off.country, off)
+        pc = country_of(p, off.country)
+        a = assess(p, pc, off)
         if not is_new_grad_ok(a, p.track):
             continue   # 경력직은 사이트에도 싣지 않는다
-        e = eligibility.judge(p, off.country)
+        e = eligibility.judge(p, pc)
         posts.append({
             **d,
-            "country": off.country, "office_name": off.display_name,
+            "country": pc, "office_name": off.display_name,
             "office_tier": off.tier, "sent_at": sent_at,
             "verdict": a.verdict, "expired": a.expired,
             "blockers_desc": a.blockers_desc, "soft_desc": a.soft_desc,

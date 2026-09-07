@@ -157,6 +157,68 @@ offices:
     eng_ok: unknown
     verified: true
 
+  # ── 외국계 글로벌 사무소 (서울/도쿄 오피스 보유). 전 세계 공고에서 한·일·대만만 걸러낸다 ──
+  - id: gl-kpf
+    name: { en: "Kohn Pedersen Fox (KPF)", ko: "KPF" }
+    careers_url: "https://www.kpf.com/careers"
+    city: 서울/도쿄
+    tier: global
+    note: "서울 오피스 보유. 국제 프로젝트 중심이라 영어 환경"
+    hiring_types: [new_grad, intern, year_round]
+    eng_ok: likely
+    verified: true
+    priority: high
+  - id: gl-gensler
+    name: { en: "Gensler", ko: "겐슬러" }
+    careers_url: "https://www.gensler.com/careers"
+    city: 도쿄/서울
+    tier: global
+    hiring_types: [new_grad, intern, year_round]
+    eng_ok: likely
+    verified: true
+    priority: high
+  - id: gl-callisonrtkl
+    name: { en: "CallisonRTKL" }
+    careers_url: "https://www.callisonrtkl.com/careers/"
+    city: 아시아 오피스
+    tier: global
+    hiring_types: [new_grad, intern]
+    eng_ok: likely
+    verified: true
+  - id: gl-perkinswill
+    name: { en: "Perkins&Will" }
+    careers_url: "https://perkinswill.com/careers/"
+    city: 글로벌
+    tier: global
+    hiring_types: [new_grad, intern]
+    eng_ok: likely
+    verified: true
+  - id: gl-populous
+    name: { en: "Populous" }
+    careers_url: "https://populous.com/careers"
+    city: 글로벌
+    tier: global
+    hiring_types: [new_grad, intern]
+    eng_ok: likely
+    verified: true
+  - id: gl-safdie
+    name: { en: "Safdie Architects" }
+    careers_url: "https://www.safdiearchitects.com/careers"
+    city: 글로벌
+    tier: global
+    hiring_types: [intern, year_round]
+    eng_ok: likely
+    verified: true
+  - id: gl-mvrdv
+    name: { en: "MVRDV" }
+    careers_url: "https://www.mvrdv.com/vacancies"
+    city: 글로벌
+    tier: global
+    note: "아시아 프로젝트 다수"
+    hiring_types: [intern, year_round]
+    eng_ok: likely
+    verified: true
+
 job_boards:
   - { name: "사람인", url: "https://www.saramin.co.kr", note: "건축설계 키워드 검색" }
   - { name: "잡코리아", url: "https://www.jobkorea.co.kr" }

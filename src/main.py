@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from . import notify, outreach, store
 from . import eligibility
 from .match import assess, is_new_grad_ok
-from .scope import in_scope
+from .scope import country_of, in_scope
 from .render import load_locale, render_posting, render_summary
 from .extract import extract_many
 from .targets import Office, load_config, load_offices
@@ -104,25 +104,26 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
             key = store.posting_key(p.office_id, p.title, p.source_url)
             if store.already_sent(conn, key):
                 continue
-            a = assess(p, office.country, office)
+            pc = country_of(p, office.country)   # 글로벌 페이지는 공고마다 나라가 다르다
+            a = assess(p, pc, office)
             # 경력 0년이라 경력직 공고는 지원 자체가 안 된다 — 라벨이 아니라 제외한다
             if cfg.get("filter", {}).get("new_grad_only", True) and not is_new_grad_ok(a, p.track):
                 print(f"[skip] {office_id}: {p.title} — 경력직 요건", file=sys.stderr)
                 continue
-            elig = eligibility.judge(p, office.country)
+            elig = eligibility.judge(p, pc)
 
             # 문의가 필요한 건에만 메일 초안을 만든다 (호출 아끼기)
             kit = None
             if gclient and elig.gate in ("ask", "domestic"):
                 kit = await asyncio.to_thread(
                     outreach.draft, gclient, p, p.company or office.display_name,
-                    office.country, a.unknowns, cfg)
+                    pc, a.unknowns, cfg)
 
             text = render_posting(p, office, a, L, elig, kit)
             if dry_run:
                 print("\n" + "─" * 60 + "\n" + text)
             else:
-                delivered, failed = await notify.send_ok(text, country=office.country)
+                delivered, failed = await notify.send_ok(text, country=pc)
                 if failed:
                     errors.extend(failed)
                     office_ok = False
