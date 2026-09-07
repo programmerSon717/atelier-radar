@@ -14,7 +14,7 @@ from datetime import date
 from dotenv import load_dotenv
 
 from . import notify, outreach, store
-from . import eligibility, relevance, salary
+from . import eligibility, relevance, salary, verified
 from .match import assess, is_new_grad_ok
 from .scope import country_of, in_scope
 from .render import load_locale, render_posting, render_summary
@@ -108,6 +108,8 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
                 if not dry_run and store.refresh_payload(conn, key, p):
                     print(f"[갱신] {office_id}: {p.title}", file=sys.stderr)
                 continue
+            # 사람이 원문을 직접 확인한 것이 있으면 모델 추출보다 먼저다
+            verified.apply(p)
             pc = country_of(p, office.country)   # 글로벌 페이지는 공고마다 나라가 다르다
             a = assess(p, pc, office)
             # 경력 0년이라 경력직 공고는 지원 자체가 안 된다 — 라벨이 아니라 제외한다

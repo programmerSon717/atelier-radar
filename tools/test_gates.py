@@ -91,6 +91,26 @@ board = next(o for o in offs.values() if o.tier == "job_board")
 p = P(title="설계 담당", company="○○건축사사무소", office_id=board.id)
 check("중립(근거 부족)", fit_grade(p, board, assess(p, board.country))[0], "neutral")
 
+# ── 사람이 확인한 사실 · 졸업 시기 · 어학 구분 ────────────────
+from src import verified, eligibility                                    # noqa: E402
+
+hd = P(title="2026년 하반기 현대건설 외국인 유학생 채용", track="entry_level",
+       source_url="https://www.jobkorea.co.kr/Recruit/GI_Read/49896644?listno=4")
+verified.apply(hd)
+check("현대건설 유학생 — 국내대 요건", eligibility.judge(hd, "KR").gate, "domestic")
+check("현대건설 유학생 — 졸업시기", "졸업 시기 불일치" in assess(hd, "KR").blockers, True)
+
+hg = P(title="2026년 하반기 현대건설 신입사원 채용", track="entry_level",
+       source_url="https://www.jobkorea.co.kr/Recruit/GI_Read/49895957")
+verified.apply(hg)
+# 영어 시험(TOEIC)은 막는 조건이 아니다 — 후보자는 영어 능통이다
+check("영어 시험은 장벽이 아니다", eligibility.judge(hg, "KR").gate, "ask")
+check("영어 시험은 충족 조건", any("영어 시험" in m for m in assess(hg, "KR").met), True)
+
+# 한국어 시험은 벽이다
+ko = P(title="신입 채용", language_test="TOPIK 4급 이상")
+check("TOPIK 은 장벽", eligibility.judge(ko, "KR").gate, "native")
+
 # ── 결과 ───────────────────────────────────────────────────
 if fails:
     print(f"실패 {len(fails)}건")

@@ -43,6 +43,13 @@ LABEL_ZH = {
 
 # 한국·일본의 "외국인 유학생 채용" 은 자국 대학에 다닌 유학생 전형이다.
 # 미국 대학 졸업자를 부르는 말이 아니다.
+# 어학시험이라고 다 벽이 아니다. 후보자는 영어가 능통하다 — TOEIC 700 은 넘는 조건이지
+# 막는 조건이 아니다. 막는 건 한국어·일본어 시험이다. 갈라서 보지 않으면
+# 현대건설 일반 공채처럼 지원 가능한 자리를 "사실상 장벽" 으로 잘라낸다.
+LOCAL_TEST = re.compile(r"TOPIK|한국어\s*능력|한국어능력시험|JLPT|日本語能力|"
+                        r"일본어\s*능력|한자능력", re.I)
+ENGLISH_TEST = re.compile(r"TOEIC|TOEFL|OPI[Cc]?|IELTS|TEPS|텝스|토익|토플|오픽", re.I)
+
 INTL_STUDENT = re.compile(r"유학생|留学生|외국인\s*유학|外国人留学", re.I)
 
 # 출신 대학 소재지 요건. 이 문구 하나가 후보자를 통째로 배제한다.
@@ -82,16 +89,6 @@ def judge(posting, country: str) -> Eligibility:
     if country == "TW":
         return Eligibility("open", "대만 국적 — 비자·언어 장벽 없음")
 
-    # 공고가 명시적으로 배제한 경우
-    if posting.foreigner_eligible is False:
-        return Eligibility("closed", "공고에 외국인 지원 불가 명시",
-                           posting.foreigner_evidence,
-                           "다른 공고를 보는 편이 낫다")
-    if posting.visa_sponsorship is False and country in ("KR", "JP"):
-        return Eligibility("closed", "취업비자 스폰서 불가 명시",
-                           posting.foreigner_evidence,
-                           "이미 취업 가능한 비자가 있어야 지원 가능")
-
     blob = _blob(posting)
 
     # 모델이 domestic_degree_required 를 안 채워도 원문에 문구가 있으면 그걸 믿는다
@@ -113,6 +110,17 @@ def judge(posting, country: str) -> Eligibility:
             posting.domestic_degree_evidence,
             "이 공고는 건너뛰어라. 해외대 졸업자를 받는 글로벌·해외인재 전형을 따로 찾아야 한다",
         )
+
+    # 공고가 명시적으로 배제한 경우 (출신 대학 요건보다 뒤에 본다 —
+    # '국내 대학 졸업' 이 걸려 있으면 비자를 따지기 전에 이미 자격이 없다)
+    if posting.foreigner_eligible is False:
+        return Eligibility("closed", "공고에 외국인 지원 불가 명시",
+                           posting.foreigner_evidence,
+                           "다른 공고를 보는 편이 낫다")
+    if posting.visa_sponsorship is False and country in ("KR", "JP"):
+        return Eligibility("closed", "취업비자 스폰서 불가 명시",
+                           posting.foreigner_evidence,
+                           "이미 취업 가능한 비자가 있어야 지원 가능")
 
     # ★ 외국인을 뽑더라도 "어떤 외국인" 인지가 갈린다.
     # 한국·일본의 외국인 채용은 대부분 자국 대학에 다닌 유학생 대상이다.
@@ -136,12 +144,14 @@ def judge(posting, country: str) -> Eligibility:
             "해외대 졸업자도 지원되는지 반드시 먼저 확인할 것. 대개는 해당되지 않는다",
         )
 
-    # 어학시험 급수를 요구하면 그것부터 넘어야 한다
-    if posting.language_test and country in ("KR", "JP"):
+    # 현지어 시험을 요구하면 그것부터 넘어야 한다.
+    # 영어 시험(TOEIC·OPIc 등)은 넘는 조건이라 여기서 막지 않는다.
+    lt = posting.language_test or ""
+    if lt and country in ("KR", "JP") and LOCAL_TEST.search(lt):
         return Eligibility(
             "native",
-            f"어학시험 요구 — {posting.language_test}",
-            posting.foreigner_evidence or posting.language_test,
+            f"현지어 시험 요구 — {lt}",
+            posting.foreigner_evidence or lt,
             "해당 급수를 먼저 확보해야 지원 가능",
         )
 

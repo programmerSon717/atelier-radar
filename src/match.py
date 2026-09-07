@@ -150,14 +150,39 @@ def _experience_check(p: Posting, a: Assessment) -> None:
         a.unknowns.append(f"경력 요건 불명확: {req}")
 
 
+# 후보자 졸업 시점. 한국 대기업 공채는 "2027년 2월 졸업예정자" 처럼 달까지 못박는다.
+CAND_GRAD = (2027, 5)
+KR_GRAD_MONTH = re.compile(r"(20\d{2})\s*년\s*(\d{1,2})\s*월\s*졸업")
+
+
 def _timing_check(p: Posting, a: Assessment, country: str) -> None:
-    """2027년 5월 졸업. 일본 4월 일괄 입사와 어긋나는 건이 핵심."""
+    """2027년 5월 졸업. 일본 4월 일괄 입사, 한국 2월 졸업 기준과 어긋나는 게 핵심."""
     gy = p.grad_year_required or ""
     if country == "JP" and re.search(r"2027年4月|2027年卒", gy):
         a.blockers_desc.append(f"{gy} — 2027년 5월 졸업이라 4월 입사 불가")
         a.blockers.append("졸업 시기 불일치")
-    elif gy:
+        return
+    m = KR_GRAD_MONTH.search(gy)
+    if m:
+        req = (int(m.group(1)), int(m.group(2)))
+        if req < CAND_GRAD:
+            # "기졸업자 및 2027년 2월 졸업예정자" — 5월 졸업은 둘 다 아니다
+            a.blockers_desc.append(
+                f"{gy} — 후보자는 {CAND_GRAD[0]}년 {CAND_GRAD[1]}월 졸업이라 해당하지 않음")
+            a.blockers.append("졸업 시기 불일치")
+            return
+    if gy:
         a.unknowns.append(f"졸업연도 조건: {gy}")
+
+
+ENGLISH_TEST = re.compile(r"TOEIC|TOEFL|OPI[Cc]?|IELTS|TEPS|토익|토플|오픽", re.I)
+
+
+def _english_test_check(p: Posting, a: Assessment) -> None:
+    """영어 시험 요건은 막는 조건이 아니라 충족하는 조건이다 (영어 능통)."""
+    lt = p.language_test or ""
+    if lt and ENGLISH_TEST.search(lt):
+        a.met.append(f"영어 시험 요건 — {lt} (영어 능통, 충족 가능)")
 
 
 def _visa_check(p: Posting, a: Assessment, country: str) -> None:
@@ -193,6 +218,7 @@ def assess(p: Posting, country: str, office=None) -> Assessment:
     _language_check(p, a)
     _experience_check(p, a)
     _timing_check(p, a, country)
+    _english_test_check(p, a)
     _visa_check(p, a, country)
 
     _deadline_check(p, a, country)

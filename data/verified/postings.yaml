@@ -1,0 +1,42 @@
+# 사람이 공고 원문(포스터 이미지 포함)을 직접 보고 확인한 사실.
+# 모델 추출보다 우선한다 (src/verified.py).
+#
+# 여기 적는 기준: 판정을 뒤집는 조건인데 모델이 못 읽는 자리에 있을 때.
+# 한국 대기업 공고는 지원자격을 포스터 이미지로만 싣는다.
+
+postings:
+  # 잡코리아에는 "대졸이상 (상세요강 참고)" 뿐이었다. 진짜 자격은 회사 채용페이지
+  # 포스터에만 있었고, 그걸 못 읽어 "✅ 외국인 지원 가능" 으로 발행됐다.
+  - url: "https://www.jobkorea.co.kr/Recruit/GI_Read/49896644"
+    checked_at: "2026-09-07"
+    source: "현대건설 채용페이지 포스터 https://recruit.hdec.co.kr/#/Recruit/2811"
+    fields:
+      domestic_degree_required: true
+      domestic_degree_evidence: "국내 정규 4년제 대학(이상) 졸업자 및 2027년 2월 졸업예정자"
+      foreigner_target: domestic_intl_student
+      education_required: "국내 정규 4년제 대학(이상) 졸업자 및 2027년 2월 졸업예정자"
+      grad_year_required: "2027년 2월 졸업예정자"
+      qualifications:
+        - "국내 정규 4년제 대학(이상) 졸업자 및 2027년 2월 졸업예정자"
+        - "학점 4.5점 만점 기준 3.0 이상 (최종학력 기준)"
+        - "취업가능한 비자를 보유하거나 체류자격 변경이 가능한 분"
+      preferred:
+        - "한국어능력 우수자"
+
+  # 같은 회사 일반 공채. 이쪽은 '국내' 라는 말이 없다 — 해외대 졸업자를 막지는 않는다.
+  # 다만 2027년 2월 졸업예정자 대상이라 2027년 5월 졸업과는 시기가 어긋난다.
+  - url: "https://www.jobkorea.co.kr/Recruit/GI_Read/49895957"
+    checked_at: "2026-09-07"
+    source: "현대건설 채용페이지 포스터 https://recruit.hdec.co.kr/#/Recruit/2802"
+    fields:
+      grad_year_required: "2027년 2월 졸업예정자"
+      language_test: "TOEIC 700점 이상 또는 TOEIC SPEAKING 120점 이상 또는 OPIc IM2 이상"
+      education_required: "정규 4년제 대학(이상) 기졸업자 및 2027년 2월 졸업예정자"
+      qualifications:
+        - "정규 4년제 대학(이상) 기졸업자 및 2027년 2월 졸업예정자"
+        - "학점 4.5점 만점 기준 3.0 이상"
+        - "어학: TOEIC 700점 이상 또는 TOEIC SPEAKING 120점 이상 또는 OPIc IM2 이상 (2024.11.1 이후 취득분)"
+        - "해외근무에 결격사유가 없는 분 (남성은 병역 필 또는 면제)"
+      preferred:
+        - "안전분야 자격증 소지자"
+      notes: "어학성적 제출 대상에서 '영미권 소재 해외 대학 졸업(예정)자 제외' 라는 단서가 붙어 있다. 면제인지 지원 배제인지 공고만으로는 갈리지 않는다 — 문의 필요."

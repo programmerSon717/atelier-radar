@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from src import eligibility, relevance, salary                      # noqa: E402
+from src import eligibility, relevance, salary, verified                      # noqa: E402
 from src.match import assess, is_new_grad_ok
 from src.scope import country_of                     # noqa: E402
 from src.models import Posting                   # noqa: E402
@@ -78,6 +78,8 @@ def build() -> dict:
     posts = []
     for d, sent_at in sent:
         p = Posting(**d)
+        verified.apply(p)          # 확인된 사실이 있으면 저장분보다 우선한다
+        d = {**d, **p.model_dump()}
         off = by.get(p.office_id)
         if off is None:
             continue
