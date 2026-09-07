@@ -74,6 +74,19 @@ class Posting(BaseModel):
                     "any=출신 대학 무관, unclear=외국인은 뽑는데 대상이 불분명. "
                     "외국인 언급 자체가 없으면 null",
     )
+    # ★ 출신 대학 소재지 요건 — 이 후보자를 통째로 배제하는 가장 흔한 조건
+    domestic_degree_required: Optional[bool] = Field(
+        default=None,
+        description="**국내(한국/일본) 소재 대학** 졸업을 요구하는가. "
+                    "'국내 정규 4년제 대학 졸업자', '국내 대학 학사 이상', "
+                    "'日本国内の大学を卒業' 같은 문구가 있으면 true. "
+                    "해외 대학도 인정하면 false. 언급이 없으면 null. "
+                    "이 후보자는 미국 대학 졸업이라 true 면 지원 자체가 불가능하다",
+    )
+    domestic_degree_evidence: Optional[str] = Field(
+        default=None, description="위 판단의 근거가 된 공고 원문 문장. 그대로 인용. 없으면 null"
+    )
+
     language_test: Optional[str] = Field(
         default=None,
         description="요구하는 어학시험과 급수를 원문 그대로. "

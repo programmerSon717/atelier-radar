@@ -65,8 +65,16 @@ function render() {
         .join(" ").toLowerCase().includes(q)));
 
   const rank = { open: 0, ask: 1, native: 2, domestic: 3, closed: 4 };
-  list.sort((a, b) => (rank[a.gate] - rank[b.gate])
-    || ((daysLeft(a.deadline) ?? 9e3) - (daysLeft(b.deadline) ?? 9e3)));
+  if (state.view === "past") {
+    // 지난 공고는 최근 마감순 — 작년 이맘때 뭐가 떴는지 보려는 거다
+    list.sort((a, b) => String(b.deadline || "").localeCompare(String(a.deadline || "")));
+  } else {
+    // 마감이 임박한 건 게이트보다 먼저다. 오늘 마감을 아래에 두면 놓친다
+    const urg = (p) => { const d = daysLeft(p.deadline); return d !== null && d <= 3 ? 0 : 1; };
+    list.sort((a, b) => (urg(a) - urg(b))
+      || (rank[a.gate] - rank[b.gate])
+      || ((daysLeft(a.deadline) ?? 9e3) - (daysLeft(b.deadline) ?? 9e3)));
+  }
 
   const inC = (p) => state.country === "all" || p.country === state.country;
   const live = P.filter(p => inC(p) && !p.expired).length;
@@ -74,9 +82,43 @@ function render() {
   document.querySelector('.chip[data-v="live"]').textContent = `진행중 ${live}`;
   document.querySelector('.chip[data-v="past"]').textContent = `지난 공고 ${past}`;
   document.getElementById("count").textContent = `${list.length}건 표시`;
-  document.getElementById("rows").innerHTML = list.length
-    ? list.map(row).join("")
-    : `<p class="empty">조건에 맞는 공고가 없다. 필터를 넓혀 보라.</p>`;
+  // 지난 공고 탭에서는 아카이브(가벼운 과거 기록)도 같이 보여준다
+  if (state.view === "past") {
+    const q2 = state.q.trim().toLowerCase();
+    const arch = (DATA.archive || []).filter(a =>
+      (state.country === "all" || a.country === state.country) &&
+      (!q2 || `${a.company} ${a.title}`.toLowerCase().includes(q2)));
+    list = list.concat(arch.map(a => ({
+      ...a, archive: true, gate: "ask", gate_icon: "🗄",
+      gate_label: "지난 기록", gate_reason: "마감된 공고의 요약 기록 (상세 없음)",
+      track: "other", expired: true, deadline: a.deadline || a.posted_at,
+      source_url: a.url, office_name: a.company, summary: "",
+    })));
+    list.sort((a, b) => String(b.deadline || b.posted_at || "")
+      .localeCompare(String(a.deadline || a.posted_at || "")));
+    document.getElementById("count").textContent = `${list.length}건 표시`;
+  }
+
+  const rowsEl = document.getElementById("rows");
+  if (!list.length) {
+    rowsEl.innerHTML = `<p class="empty">${state.view === "past"
+      ? "지난 공고가 아직 없다. 마감이 지나면 여기 쌓인다." : "조건에 맞는 공고가 없다. 필터를 넓혀 보라."}</p>`;
+    return;
+  }
+  if (state.view === "past" && state.country === "all") {
+    // 지난 공고는 나라별로 묶어서 본다 — 어느 나라가 언제 뽑았는지가 요점이다
+    const order = ["KR", "JP", "TW"];
+    const NAME = { KR: "🇰🇷 한국", JP: "🇯🇵 일본", TW: "🇹🇼 대만" };
+    rowsEl.innerHTML = order.filter(c => list.some(p => p.country === c)).map(c => {
+      const g = list.filter(p => p.country === c);
+      const years = [...new Set(g.map(p => (p.deadline || "").slice(0, 4)).filter(Boolean))];
+      return `<div class="grouphead">${NAME[c]} <span>${g.length}건${
+        years.length ? " · " + years.sort().reverse().join(" / ") : ""}</span></div>`
+        + g.map(row).join("");
+    }).join("");
+  } else {
+    rowsEl.innerHTML = list.map(row).join("");
+  }
 }
 
 function bullets(items, label) {
@@ -97,6 +139,18 @@ function mailBlock(k) {
 }
 
 function row(p) {
+  if (p.archive) {
+    const when = p.posted_at ? `게시 ${E(p.posted_at)}` : "";
+    const dl = p.deadline && p.deadline !== p.posted_at ? ` · 마감 ${E(p.deadline)}` : "";
+    return `<article class="row arch" style="--g:var(--closed)">
+      <div class="stripe"></div><div class="rbody">
+        <div class="rtop"><span class="gatechip">🗄 지난 기록</span>
+          <span class="rtitle">${E(p.title)}</span>
+          <span class="rfirm">${E(p.company || "")}</span></div>
+        <div class="meta"><span>${when}${dl}</span><span>·</span><span>vmspace</span></div>
+        <p style="margin:9px 0 0"><a class="src" href="${E(p.url)}" target="_blank" rel="noopener">공고 원문 →</a></p>
+      </div></article>`;
+  }
   const g = GATES.find(x => x.k === p.gate) || GATES[1];
   const dl = daysLeft(p.deadline);
   const meta = [

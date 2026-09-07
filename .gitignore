@@ -8,3 +8,4 @@ data/profile/*.pdf
 **/.DS_Store
 data/profile/resume.pdf
 data/profile/portfolio.pdf
+.bun/

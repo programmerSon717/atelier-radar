@@ -66,6 +66,16 @@ def judge(posting, country: str) -> Eligibility:
                            posting.foreigner_evidence,
                            "이미 취업 가능한 비자가 있어야 지원 가능")
 
+    # ★★ 출신 대학 소재지 요건이 가장 먼저다. 이게 걸리면 다른 조건은 볼 필요도 없다.
+    # "국내 정규 4년제 대학 졸업자" 는 미국 대학 졸업자를 통째로 배제한다.
+    if posting.domestic_degree_required is True:
+        return Eligibility(
+            "domestic",
+            "국내(한국/일본) 대학 졸업 요건 — 미국 대학 졸업자는 지원 자격 자체가 없음",
+            posting.domestic_degree_evidence,
+            "이 공고는 건너뛰어라. 해외대 졸업자를 받는 글로벌·해외인재 전형을 따로 찾아야 한다",
+        )
+
     # ★ 외국인을 뽑더라도 "어떤 외국인" 인지가 갈린다.
     # 한국·일본의 외국인 채용은 대부분 자국 대학에 다닌 유학생 대상이다.
     # 후보자는 미국 대학 졸업이라 그 전형에는 해당하지 않는다.

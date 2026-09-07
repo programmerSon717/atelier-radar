@@ -65,7 +65,23 @@ def build() -> dict:
             "gate_reason": e.reason, "gate_evidence": e.evidence, "gate_action": e.action,
         })
 
+    # 아카이브(과거 공고) — LLM 을 거치지 않고 목록에서 직접 긁은 가벼운 기록이다.
+    # JD 는 없지만 '누가 언제 뽑았나' 는 알 수 있어서 내년 시점을 잡는 데 쓰인다.
+    archive = []
+    if db.exists():
+        try:
+            for url, country, company, title, posted, deadline, src in c.execute(
+                "SELECT url,country,company,title,posted_at,deadline,source FROM archive"
+                " ORDER BY COALESCE(posted_at,'') DESC"
+            ):
+                archive.append({"url": url, "country": country or "KR", "company": company,
+                                "title": title, "posted_at": posted, "deadline": deadline,
+                                "source": src})
+        except sqlite3.OperationalError:
+            pass   # 아직 아카이브를 한 번도 안 돌렸다
+
     return {
+        "archive": archive,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "offices": offices,
         "postings": posts,
