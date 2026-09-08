@@ -176,10 +176,10 @@ function mailBlock(k, p) {
     <div class="jd" style="grid-template-columns:1fr">
       <div><h4>${T("mail_subject")}</h4><p>${E(subj)}</p></div>
       <div><h4>${T("mail_body")}</h4><p style="white-space:pre-wrap">${E(body)}</p></div>
-      ${translated ? `<div><h4>${T("mail_original")}</h4>
-        <p class="note" style="margin:0 0 6px">${T("mail_send_note")}</p>
+      ${translated ? `<div><details><summary class="mark" style="cursor:pointer">${T("mail_original")}</summary>
+        <p class="note" style="margin:6px 0">${T("mail_send_note")}</p>
         <p id="${id}" style="white-space:pre-wrap;opacity:.85">${E(k.body)}</p>
-        <button class="chip" style="margin-top:9px" data-copy="${id}">${T("mail_copy")}</button></div>`
+        <button class="chip" style="margin-top:9px" data-copy="${id}">${T("mail_copy")}</button></details></div>`
       : `<div><p id="${id}" hidden>${E(k.body)}</p>
         <button class="chip" data-copy="${id}">${T("mail_copy")}</button></div>`}
       ${hooks.length ? `<div><h4>${T("hooks")}</h4><ul>${hooks.map(x=>`<li>${E(x)}</li>`).join("")}</ul></div>` : ""}

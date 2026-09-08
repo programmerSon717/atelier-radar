@@ -46,6 +46,8 @@ GLOSSARY = """\
 | 언어 요건 미기재 | Language requirement not stated | 公告未載明語言要求 |
 | 졸업연도 조건 | Graduation-year requirement | 畢業年度條件 |
 | 경력 N년 요구 | Requires N years of experience | 要求 N 年經驗 |
+| 경력 N년 이하 대상 | Open to those with N years of experience or less | 對象為經驗 N 年以下者 |
+| 제2신졸 | Recent graduates within a few years of entering work (dai-ni shinsotsu) | 第二新卒 |
 | 학업 연차 조건 | Academic-year requirement | 修業年限條件 |
 | 포트폴리오와 겹침 | Overlaps with the portfolio | 與作品集重疊 |
 | 추적 대상 사무소 | Tracked office | 追蹤中的事務所 |
@@ -81,11 +83,16 @@ SYSTEM = """\
    한글 음을 지어서 붙이지 마라 — "大林組" 를 "오바마구미" 라고 쓴 적이 있다. 확실하지
    않으면 원문만 둔다.
 4. 자격 요건의 **수치·기간·급수·연도는 절대 바꾸지 마라** (TOEIC 700, N2, 2027년 2월 등).
+   **조건의 방향도 바꾸지 마라.** "경력 3년 이하 대상" 은 3년 넘으면 안 된다는 뜻이지
+   3년을 요구한다는 뜻이 아니다. 뒤집으면 지원할 수 있는 자리를 잃는다.
 5. mail_subject / mail_body 는 **읽으라고** 옮기는 것이다. 실제로 보낼 때는 원문을
    그대로 보낸다 (한국 사무소에는 한국어로 보내야 하니까). 그러니 자연스럽게 옮기되
    내용을 바꾸지 마라.
 6. **출력에 원문 언어가 남아 있으면 안 된다.** en 은 전부 영어로, zh_TW 는 전부
    번체중문으로 쓴다. "언어 요건 미기재" 같은 조각을 그대로 두지 마라.
+   **공고에서 따온 인용문도 옮긴다.** "신입 가능 — 正社員としての就業経験のない方" 처럼
+   대시 뒤에 원문을 붙여 둔 자리가 많은데, 그 뒷부분까지 전부 옮겨야 한다.
+   회사명·프로젝트명만 예외다.
 7. 아래 용어표는 그대로 따른다.
 
 {glossary}
@@ -124,15 +131,21 @@ def bundle_of(d: dict[str, Any]) -> dict[str, Any]:
 
 
 HANGUL = re.compile(r"[가-힣]")
+# 가운뎃점(・U+30FB)은 중국어 표기에도 쓴다 — 잔존으로 보면 오탐이다
+KANA = re.compile(r"[\u3040-\u309F\u30A0-\u30FA\u30FC-\u30FF]")   # ひらがな·カタカナ
+# 회사명·작품명은 원문을 그대로 두는 게 맞다. 검사에서 뺀다.
+KEEP_ORIGINAL = {"company", "firm_projects"}
 
 
 def _hangul_left(data: dict[str, Any]) -> list[str]:
-    """en·zh_TW 결과에 한글이 남은 필드 이름들."""
+    """en·zh_TW 결과에 한국어·일본어가 그대로 남은 필드 이름들."""
     out = []
     for lang in ("en", "zh_TW"):
         for k, v in (data.get(lang) or {}).items():
+            if k in KEEP_ORIGINAL:
+                continue
             txt = " ".join(v) if isinstance(v, list) else str(v or "")
-            if HANGUL.search(txt):
+            if HANGUL.search(txt) or KANA.search(txt):
                 out.append(f"{lang}.{k}")
     return out
 
