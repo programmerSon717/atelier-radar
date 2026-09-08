@@ -286,27 +286,69 @@ function bind() {
   });
 }
 
-(async function () {
-  try {
-    const r = await fetch("data.json?t=" + Date.now());
-    DATA = await r.json();
-  } catch (e) {
-    document.getElementById("rows").innerHTML =
-      `<p class="empty">데이터를 불러오지 못했다. 잠시 뒤 새로고침해 보라.</p>`;
-    return;
-  }
+// 봇은 하루에도 여러 번 새 데이터를 올린다. 화면을 열어 둔 채로도 그걸 받아야 한다.
+// 브라우저 캐시를 타지 않게 no-store 로 받고, 생성 시각이 바뀌었을 때만 다시 그린다.
+const POLL_MS = 60_000;
+
+async function fetchData() {
+  const r = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}
+
+function paintMeta() {
   const off = DATA.offices, tracked = off.filter(o => o.status === "ok").length;
   document.getElementById("k-off").innerHTML = `${tracked}<small> / ${off.length}</small>`;
   document.getElementById("k-post").innerHTML = `${DATA.postings.length}<small> 건</small>`;
   const t = new Date(DATA.generated_at);
   document.getElementById("k-time").textContent =
     t.toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
-
   const un = off.filter(o => o.status !== "ok");
   document.getElementById("gap-h").textContent = `아직 추적하지 못하는 사무소 — ${un.length}곳`;
   document.getElementById("gaps").innerHTML = un.map(o =>
     `<span class="gapitem">${E(o.name_local)} <span style="opacity:.55">${o.country}</span></span>`).join("");
+}
+
+function toast(msg) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add("on");
+  setTimeout(() => el.classList.remove("on"), 6000);
+}
+
+async function poll() {
+  try {
+    const next = await fetchData();
+    if (next.generated_at !== DATA.generated_at) {
+      const before = DATA.postings.length;
+      DATA = next;
+      paintMeta();
+      render();
+      const diff = DATA.postings.length - before;
+      toast(diff > 0 ? `새 공고 ${diff}건이 들어왔다` : "목록이 갱신됐다");
+    }
+  } catch (e) { /* 일시적 실패는 무시하고 다음 주기에 다시 본다 */ }
+}
+
+(async function () {
+  try {
+    DATA = await fetchData();
+  } catch (e) {
+    document.getElementById("rows").innerHTML =
+      `<p class="empty">데이터를 불러오지 못했다. 잠시 뒤 새로고침해 보라.</p>`;
+    return;
+  }
+  paintMeta();
 
   bind();
   render();
+
+  // 1분마다 확인한다. 탭이 뒤에 있을 때는 쉬고, 다시 앞으로 오면 바로 한 번 본다.
+  setInterval(() => { if (!document.hidden) poll(); }, POLL_MS);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) poll(); });
 })();

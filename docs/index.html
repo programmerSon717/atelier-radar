@@ -92,6 +92,10 @@ input[type=search]:focus-visible{outline:2px solid var(--redline);outline-offset
 .rtop{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
 .rtitle{font-weight:600;font-size:15px;letter-spacing:-.005em}
 .rfirm{color:var(--graphite);font-size:13px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+  background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:3px;font-size:13px;
+  opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:50}
+#toast.on{opacity:.94;transform:translateX(-50%) translateY(0)}
 .fitchip{font-family:var(--f-mono);font-size:11px;padding:2px 7px;border:1px solid var(--fc);
   color:var(--fc);border-radius:2px;white-space:nowrap}
 .gatechip{font-family:var(--f-mono);font-size:11px;padding:2px 7px;border:1px solid var(--g);
