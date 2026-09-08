@@ -101,7 +101,7 @@ SYSTEM = """\
 
 # 프롬프트·용어표를 고치면 이미 옮겨 둔 것도 다시 옮겨야 한다. 안 그러면 해시가 같아서
 # "안 바뀐 것" 으로 보고 건너뛰고, 옛 번역이 화면에 그대로 남는다. 실제로 그랬다.
-PROMPT_VERSION = 3
+PROMPT_VERSION = 4
 
 
 def source_hash(bundle: dict[str, Any]) -> str:
@@ -155,6 +155,37 @@ def _hangul_left(data: dict[str, Any]) -> list[str]:
     return out
 
 
+def _repair(client, data: dict[str, Any], leftovers: list[str], cfg: dict, model_name: str) -> None:
+    """옮기다 만 조각만 짚어서 다시 옮긴다. 실패하면 그냥 둔다 (원문이라도 보이는 게 낫다)."""
+    from google.genai import types
+
+    LANG_NAME = {"en": "영어", "zh_TW": "번체중문"}
+    for ref in leftovers:
+        lang, _, field = ref.partition(".")
+        cur = (data.get(lang) or {}).get(field)
+        if cur in (None, "", []):
+            continue
+        payload = json.dumps({"text": cur}, ensure_ascii=False)
+        try:
+            r = client.models.generate_content(
+                model=model_name,
+                contents=(f"아래 값을 {LANG_NAME.get(lang, lang)} 로 옮겨라. 원문 언어가 한 글자도 남으면 안 된다.\n"
+                          f"회사명·프로젝트명만 원문을 남긴다. 리스트면 길이를 그대로 둔다.\n\n{payload}"),
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema={"type": "object", "properties": {
+                        "text": ({"type": "array", "items": {"type": "string"}}
+                                 if isinstance(cur, list) else {"type": "string"})}},
+                    temperature=0.1,
+                ),
+            )
+            got = (json.loads(r.text) or {}).get("text") if r.text else None
+            if got and (not isinstance(cur, list) or len(got) == len(cur)):
+                data[lang][field] = got
+        except Exception:
+            continue
+
+
 def translate(client, bundle: dict[str, Any], cfg: dict,
               focus: Optional[list[str]] = None, attempt_left: int = 2
               ) -> Optional[dict[str, Any]]:
@@ -188,6 +219,10 @@ def translate(client, bundle: dict[str, Any], cfg: dict,
                 continue
             # 영어·번체중문 결과에 한글이 남아 있으면 옮기다 만 것이다. 한 번 더 부른다.
             leftovers = _hangul_left(data)
+            # 남은 게 한두 조각이면 그것만 따로 옮긴다. 통째로 다시 부르는 것보다 잘 된다.
+            if leftovers and attempt_left <= 0:
+                _repair(client, data, leftovers, cfg, model_name)
+                leftovers = _hangul_left(data)
             if leftovers and attempt_left > 0:
                 again = translate(client, bundle, cfg, focus=leftovers,
                                   attempt_left=attempt_left - 1)
