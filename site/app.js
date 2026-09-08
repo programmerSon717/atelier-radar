@@ -188,11 +188,11 @@ function row(p) {
   const g = GATES.find(x => x.k === p.gate) || GATES[1];
   const dl = daysLeft(p.deadline, p.country);
   const meta = [
-    FLAG[p.country] + " " + E(p.location || p.office_name),
+    FLAG[p.country] + " " + E(F(p, "location") || p.office_name),
     trackLabel(p.track),
     // 고용형태가 트랙과 같은 말이면 두 번 쓰지 않는다 ("인턴 · 인턴")
     p.employment_type && !new RegExp(trackLabel(p.track) || "\u0000").test(F(p, "employment_type"))
-      && !/^(intern(ship)?|인턴)$/i.test(p.employment_type.trim()) ? E(p.employment_type) : "",
+      && !/^(intern(ship)?|인턴)$/i.test(p.employment_type.trim()) ? E(F(p, "employment_type")) : "",
     p.deadline ? `<span class="${dl !== null && dl <= 14 ? "due" : ""}">${p.expired ? T("expired") : T("deadline")} ${E(p.deadline)}${dl !== null && dl >= 0 && dl <= 30 ? ` (D-${dl})` : ""}</span>` : "",
   ].filter(Boolean);
 

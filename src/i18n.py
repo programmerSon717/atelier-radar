@@ -10,7 +10,7 @@ import hashlib
 import json
 from typing import Any, Optional
 
-FIELDS_TEXT = ("title", "summary", "employment_type", "process", "apply_how",
+FIELDS_TEXT = ("title", "summary", "location", "employment_type", "process", "apply_how",
                "language_required", "salary", "notes", "gate_label", "gate_reason",
                "gate_evidence", "gate_action", "pay_note")
 FIELDS_LIST = ("responsibilities", "qualifications", "preferred", "firm_projects",
@@ -51,6 +51,8 @@ SYSTEM = """\
    영어는 미국 건축사무소 채용공고 문체, 번체중문은 대만 사무소 공고 문체로 쓴다.
    "応募" 를 "응모" 라고 옮기는 식의 기계적 번역은 하지 마라 — "지원" 이다.
 3. 고유명사(회사명·프로젝트명·역명·상 이름)는 **원문 표기 그대로** 둔다.
+   다만 **주소·도시는 읽는 사람 말로 옮긴다** — "서울 마포구" 는 영어로 Mapo-gu, Seoul,
+   번체중문으로 首爾 麻浦區 다. 번지·건물명은 원문을 살린다.
    한글 음을 지어서 붙이지 마라 — "大林組" 를 "오바마구미" 라고 쓴 적이 있다. 확실하지
    않으면 원문만 둔다.
 4. 자격 요건의 **수치·기간·급수·연도는 절대 바꾸지 마라** (TOEIC 700, N2, 2027년 2월 등).
