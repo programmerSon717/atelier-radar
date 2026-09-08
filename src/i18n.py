@@ -42,6 +42,25 @@ GLOSSARY = """\
 | 우대 사항 | Preferred | 加分條件 |
 | 경력 0년 | No full-time experience | 無正職經驗 |
 | 회사 전체 평균 | Company-wide average | 公司整體平均 |
+| 신입 가능 | Open to new graduates | 開放新鮮人 |
+| 언어 요건 미기재 | Language requirement not stated | 公告未載明語言要求 |
+| 졸업연도 조건 | Graduation-year requirement | 畢業年度條件 |
+| 경력 N년 요구 | Requires N years of experience | 要求 N 年經驗 |
+| 학업 연차 조건 | Academic-year requirement | 修業年限條件 |
+| 포트폴리오와 겹침 | Overlaps with the portfolio | 與作品集重疊 |
+| 추적 대상 사무소 | Tracked office | 追蹤中的事務所 |
+| 판단할 근거가 공고에 부족함 | The posting gives too little to judge | 公告資訊不足，難以判斷 |
+| 외국인·영어 관련 신호 있음 | Mentions foreign applicants or English | 有外籍·英語相關訊號 |
+| 지원 자체가 막힘 | Blocked from applying | 無法應徵 |
+| 비자 스폰서 없음 — 본인이 해결해야 함 | No visa sponsorship — you must arrange it yourself | 不提供簽證贊助 — 需自行處理 |
+| 미검증 — 출처를 직접 확인할 것 | Unverified — check the source yourself | 未驗證 — 請自行確認出處 |
+| 이미 마감됨 | Already closed | 已截止 |
+| 문화·전시 | Culture & exhibition | 文化·展覽 |
+| 주거·복합 | Housing & mixed-use | 住宅·複合 |
+| 도시·조경 | Urban & landscape | 都市·景觀 |
+| 모듈러·지속가능 | Modular & sustainability | 模組化·永續 |
+| 리서치·공모 | Research & competitions | 研究·競圖 |
+| 시각화·모형 | Visualisation & models | 視覺化·模型 |
 """
 
 SYSTEM = """\
@@ -119,7 +138,7 @@ def _hangul_left(data: dict[str, Any]) -> list[str]:
 
 
 def translate(client, bundle: dict[str, Any], cfg: dict,
-              retried: bool = False, focus: Optional[list[str]] = None
+              focus: Optional[list[str]] = None, attempt_left: int = 2
               ) -> Optional[dict[str, Any]]:
     """{ko: {...}, en: {...}, zh_TW: {...}}. 실패하면 None."""
     if not bundle:
@@ -151,9 +170,11 @@ def translate(client, bundle: dict[str, Any], cfg: dict,
                 continue
             # 영어·번체중문 결과에 한글이 남아 있으면 옮기다 만 것이다. 한 번 더 부른다.
             leftovers = _hangul_left(data)
-            if leftovers and not retried:
-                again = translate(client, bundle, cfg, retried=True, focus=leftovers)
-                if again:
+            if leftovers and attempt_left > 0:
+                again = translate(client, bundle, cfg, focus=leftovers,
+                                  attempt_left=attempt_left - 1)
+                # 나아졌을 때만 갈아탄다. 더 나빠진 걸 받으면 안 된다.
+                if again and len(_hangul_left(again)) < len(leftovers):
                     return again
             # 리스트 길이가 어긋나면 원문을 잃은 것이다 — 그건 쓰지 않는다
             for lang in LANGS:
