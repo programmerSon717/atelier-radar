@@ -1,0 +1,179 @@
+# 회사별 연봉 — tools/fetch_company_salary.py 가 채운다. 손으로 고치지 말 것.
+# 사람인 기업정보(국민연금 신고액 기반) 의 **회사 전체 평균**이다. 신입 초봉이 아니다.
+companies:
+  가아건축사사무소:
+    average: 5,343만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)가아건축사사무소
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EA%B0%80%EC%95%84
+  건축사사무소리옹:
+    average: 8,460만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)건축사사무소리옹
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EB%A6%AC%EC%98%B9
+  건축사사무소페타:
+    average: 7,452만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)건축사사무소페타
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%ED%8E%98%ED%83%80
+  디마건축사사무소:
+    average: 5,464만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)디마건축사사무소
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EB%94%94%EB%A7%88
+  디에이그룹엔지니어링종합건축사사무소:
+    average: 7,289만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)디에이그룹엔지니어링종합건축사사무소
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EB%94%94%EC%97%90%EC%9D%B4%EA%B7%B8%EB%A3%B9
+  삼우종합건축사사무소:
+    average: 3,853만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)삼우
+    industry: 건물 및 토목 엔지니어링 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%82%BC%EC%9A%B0
+  시공테크:
+    average: 7,453만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)시공테크
+    industry: 그 외 기타 창작 및 예술관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%8B%9C%EA%B3%B5%ED%85%8C%ED%81%AC
+  시스템랩:
+    average: 7,125만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)더시스템랩건축사사무소
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%8B%9C%EC%8A%A4%ED%85%9C%EB%9E%A9
+  에스오에이:
+    average: 6,693만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: 건축사사무소에스오에이(주)
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%97%90%EC%8A%A4%EC%98%A4%EC%97%90%EC%9D%B4
+  오비비에이:
+    average: 5,941만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)건축사사무소오비비에이
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%98%A4%EB%B9%84%EB%B9%84%EC%97%90%EC%9D%B4
+  오씨에이건축:
+    average: 3,735만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)건축사사무소오씨에이
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%98%A4%EC%94%A8%EC%97%90%EC%9D%B4
+  오지아이건설:
+    average: 8,087만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)오지아이건설
+    industry: 사무ㆍ상업용 및 공공기관용 건물 건설업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%98%A4%EC%A7%80%EC%95%84%EC%9D%B4%EA%B1%B4%EC%84%A4
+  운생동건축사사무소:
+    average: 5,782만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: 운생동건축사사무소(주)
+    industry: null
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%9A%B4%EC%83%9D%EB%8F%99
+  이로재:
+    average: 3,592만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)이로재이도시건축사사무소
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%9D%B4%EB%A1%9C%EC%9E%AC
+  정림건축종합건축사사무소:
+    average: 7,725만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)정림건축종합건축사사무소
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EC%A0%95%EB%A6%BC%EA%B1%B4%EC%B6%95
+  종합건축사사무소건원:
+    average: 8,142만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)건축사사무소건원엔지니어링
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%EA%B1%B4%EC%9B%90
+  포스코:
+    average: 10,475만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)포스코
+    industry: 제강업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%ED%8F%AC%EC%8A%A4%EC%BD%94
+  플랜엠:
+    average: 5,273만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)플랜엠
+    industry: 기타 구조용 금속제품 제조업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%ED%94%8C%EB%9E%9C%EC%97%A0
+  한림이앤지:
+    average: 4,153만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)한림이앤지
+    industry: 기타 일반 기계 및 장비 수리업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%ED%95%9C%EB%A6%BC%EC%9D%B4%EC%95%A4%EC%A7%80
+  해안종합건축사사무소:
+    average: 8,355만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: (주)해안종합건축사사무소
+    industry: 건축설계 및 관련 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%ED%95%B4%EC%95%88
+  현대건설:
+    average: 7,927만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: 현대건설(주)
+    industry: null
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%ED%98%84%EB%8C%80%EA%B1%B4%EC%84%A4
+  현대엔지니어링:
+    average: 8,602만원
+    basis: 회사 전체 평균 (국민연금 신고액 기반) — 신입 초봉이 아니다
+    checked_at: '2026-09-07'
+    company: 에이치디현대마린솔루션테크(주)
+    industry: 기타 엔지니어링 서비스업
+    source: 사람인 기업정보
+    source_url: https://www.saramin.co.kr/zf_user/search/company?searchword=%ED%98%84%EB%8C%80

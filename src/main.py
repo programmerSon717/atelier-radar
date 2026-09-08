@@ -146,7 +146,7 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
                 continue
 
             elig = eligibility.judge(p, pc)
-            pay = salary.describe(p, pc, office.tier)
+            pay = salary.describe(p, pc, office.tier, office.id)
 
             # 문의가 필요한 건에만 메일 초안을 만든다 (호출 아끼기)
             kit = None

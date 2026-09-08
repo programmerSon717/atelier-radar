@@ -53,7 +53,9 @@ h2{font-size:15px;font-weight:600;margin:0}
   border:1px solid var(--hair);grid-template-columns:repeat(5,1fr)}
 .gate{background:var(--sheet);padding:12px 14px;text-align:left;border:0;
   border-top:3px solid var(--g);cursor:pointer;font:inherit;color:inherit;display:block}
-.gate[aria-pressed="true"]{background:var(--tint)}
+.gate[aria-pressed="true"]{background:var(--tint);
+  box-shadow:inset 0 0 0 2px var(--g),0 2px 0 0 var(--g)}
+.gate[aria-pressed="true"] .t::after{content:" ✓";color:var(--g);font-weight:700}
 .gate:focus-visible{outline:2px solid var(--redline);outline-offset:-2px}
 .gate .n{font-family:var(--f-mono);font-size:24px;font-weight:600;color:var(--g);
   font-variant-numeric:tabular-nums;line-height:1.1}
@@ -76,7 +78,10 @@ table{border-collapse:collapse;width:100%;font-size:13.5px}
   padding:5px 11px;border:1px solid var(--hair);background:var(--sheet);color:var(--graphite);
   cursor:pointer;border-radius:0}
 #clear{border-color:var(--redline);color:var(--redline)}
-.chip[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--tint)}
+/* 선택된 건 한눈에 보여야 한다. 배경만 살짝 다르면 눌렀는지 알 수 없다. */
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--paper);
+  font-weight:600;box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--ink)}
+.chip[aria-pressed="true"]::before{content:"✓ ";font-weight:700}
 .chip:focus-visible{outline:2px solid var(--redline);outline-offset:1px}
 input[type=search]{font:inherit;font-size:13px;padding:5px 10px;border:1px solid var(--hair);
   background:var(--sheet);color:var(--ink);min-width:190px;border-radius:0}
@@ -104,6 +109,8 @@ input[type=search]:focus-visible{outline:2px solid var(--redline);outline-offset
   background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:3px;font-size:13px;
   opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:50}
 #toast.on{opacity:.94;transform:translateX(-50%) translateY(0)}
+.rumor{font-family:var(--f-mono);font-size:10px;border:1px solid var(--native);
+  color:var(--native);padding:1px 5px;border-radius:2px;margin-right:5px}
 .fitchip{font-family:var(--f-mono);font-size:11px;padding:2px 7px;border:1px solid var(--fc);
   color:var(--fc);border-radius:2px;white-space:nowrap}
 .gatechip{font-family:var(--f-mono);font-size:11px;padding:2px 7px;border:1px solid var(--g);
@@ -150,6 +157,12 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--hair);
   font-family:var(--f-mono);font-size:11px;color:var(--graphite);
   display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .hide{display:none!important}
+.langbox{grid-column:-2/-1;justify-self:end;align-self:start;display:flex;gap:0;
+  border:1px solid var(--hair);border-radius:3px;overflow:hidden}
+.lang{font-family:var(--f-ui);font-size:11.5px;padding:5px 10px;background:var(--sheet);
+  border:0;border-right:1px solid var(--hair);color:var(--graphite);cursor:pointer}
+.lang:last-child{border-right:0}
+.lang[aria-pressed="true"]{background:var(--ink);color:var(--paper);font-weight:600}
 @media (max-width:760px){
   .tblock{grid-template-columns:1fr 1fr}
   .gates{grid-template-columns:1fr 1fr}
@@ -165,40 +178,45 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--hair);
   <header class="tblock">
     <div class="tb tb-lead">
       <h1>Atelier Radar</h1>
-      <p class="sub">일본 · 한국 · 대만 건축설계 신입공채 및 인턴 추적</p>
+      <p class="sub" data-i18n="tagline">일본 · 한국 · 대만 건축설계 신입공채 및 인턴 추적</p>
     </div>
-    <div class="tb"><span class="mark">대상 조건</span>
-      <div class="val" style="font-size:14px">건축학 석사과정 · 2027.05 졸업</div>
-      <div class="sub" style="font-size:12.5px">대만 국적 · 경력 0년 · 일본어 불가</div></div>
-    <div class="tb"><span class="mark">추적 사무소</span>
+    <div class="langbox" role="group" aria-label="Language">
+      <button class="lang" data-lang="ko" aria-pressed="true">한국어</button>
+      <button class="lang" data-lang="en" aria-pressed="false">English</button>
+      <button class="lang" data-lang="zh_TW" aria-pressed="false">繁體中文</button>
+    </div>
+    <div class="tb"><span class="mark" data-i18n="profile_h">대상 조건</span>
+      <div class="val" style="font-size:14px" data-i18n="profile_2">건축학 석사과정 · 2027.05 졸업</div>
+      <div class="sub" style="font-size:12.5px" data-i18n="profile_1">대만 국적 · 경력 0년 · 일본어 불가</div></div>
+    <div class="tb"><span class="mark" data-i18n="k_off">추적 사무소</span>
       <div class="val" id="k-off">–</div></div>
-    <div class="tb"><span class="mark">수집 공고</span>
+    <div class="tb"><span class="mark" data-i18n="k_post">수집 공고</span>
       <div class="val" id="k-post">–</div></div>
-    <div class="tb"><span class="mark">최종 갱신</span>
+    <div class="tb"><span class="mark" data-i18n="k_time">최종 갱신</span>
       <div class="val" id="k-time" style="font-size:13px">–</div></div>
   </header>
 
   <section class="gates" id="gates" role="group" aria-label="지원 가능 여부로 거르기"></section>
 
   <section class="guide">
-    <div class="guide-h"><h2>지금 뭘 봐야 하나</h2>
-      <span class="mark" style="margin:0">상황별 안내</span></div>
+    <div class="guide-h"><h2 data-i18n="guide_h">지금 뭘 봐야 하나</h2>
+      <span class="mark" style="margin:0" data-i18n="guide_sub">상황별 안내</span></div>
     <table><tbody id="guide"></tbody></table>
   </section>
 
   <div class="tools">
     <div style="display:flex;gap:6px" role="group" aria-label="국가">
-      <button class="chip" data-c="all" aria-pressed="true">전체</button>
-      <button class="chip" data-c="KR" aria-pressed="false">🇰🇷 한국</button>
-      <button class="chip" data-c="JP" aria-pressed="false">🇯🇵 일본</button>
-      <button class="chip" data-c="TW" aria-pressed="false">🇹🇼 대만</button>
+      <button class="chip" data-c="all" aria-pressed="true" data-i18n="all">전체</button>
+      <button class="chip" data-c="KR" aria-pressed="false" data-i18n="kr">🇰🇷 한국</button>
+      <button class="chip" data-c="JP" aria-pressed="false" data-i18n="jp">🇯🇵 일본</button>
+      <button class="chip" data-c="TW" aria-pressed="false" data-i18n="tw">🇹🇼 대만</button>
     </div>
     <div style="display:flex;gap:6px" role="group" aria-label="진행 상태">
       <button class="chip" data-v="live" aria-pressed="true">진행중</button>
       <button class="chip" data-v="past" aria-pressed="false">지난 공고</button>
     </div>
-    <input type="search" id="q" placeholder="회사·직무 검색" aria-label="검색">
-    <button class="chip" id="clear" hidden>✕ 필터 해제</button>
+    <input type="search" id="q" data-i18n-ph="search_ph" placeholder="회사·직무 검색" aria-label="검색">
+    <button class="chip" id="clear" hidden data-i18n="clear">✕ 필터 해제</button>
     <span class="count" id="count"></span>
   </div>
 
@@ -206,21 +224,20 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--hair);
 
   <section class="open" id="open-sec">
     <span class="mark" id="open-h">공고 없음 — 상시 지원할 곳</span>
-    <p class="note">채용 공고를 따로 내지 않는 사무소다. 한국 아틀리에는 대부분 이렇게 뽑는다 —
-      공고를 기다리지 말고 포트폴리오를 보내는 자리다.</p>
+    <p class="note" data-i18n="open_note">채용 공고를 따로 내지 않는 사무소다. 한국 아틀리에는 대부분 이렇게 뽑는다 — 공고를 기다리지 말고 포트폴리오를 보내는 자리다.</p>
     <div class="openlist" id="openlist"></div>
   </section>
 
   <section class="gap">
     <span class="mark" id="gap-h">아직 추적하지 못하는 사무소</span>
-    <p class="note">채용 페이지 주소를 못 찾았거나, 자바스크립트로 그려서 본문을 읽을 수 없는 곳이다.
-      여기 있는 동안은 공고가 올라와도 잡히지 않는다.</p>
+    <p class="note" data-i18n="gap_note">채용 페이지 주소를 못 찾았거나, 자바스크립트로 그려서 본문을 읽을 수 없는 곳이다. 여기 있는 동안은 공고가 올라와도 잡히지 않는다.</p>
     <div class="gaplist" id="gaps"></div>
   </section>
 
-  <footer><span>모든 항목은 채용 페이지 원문에서 확인한 것만 싣는다</span>
-    <span>확인되지 않은 항목은 추정하지 않고 비워 둔다</span></footer>
+  <footer><span data-i18n="foot_1">모든 항목은 채용 페이지 원문에서 확인한 것만 싣는다</span>
+    <span data-i18n="foot_2">확인되지 않은 항목은 추정하지 않고 비워 둔다</span></footer>
 </div>
+<script src="ui.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

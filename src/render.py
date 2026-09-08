@@ -144,12 +144,10 @@ def render_posting(p: Posting, office: Office, a: Assessment, L: dict,
             lines.append(f"• 공고 명시: <b>{_esc(pay['stated'])}</b>")
         elif p.salary:
             lines.append(f"• 공고 명시: {_esc(p.salary)} (금액 없음)")
-        b = pay.get("benchmark")
-        if b:
-            lines.append(f"• 업계 참고: <b>{_esc(b['range'])}</b> (신입)")
-            if b.get("note"):
-                lines.append(f"  <i>{_esc(b['note'])}</i>")
-            lines.append(f"  <i>※ {_esc(b['disclaimer'])}</i>")
+        c = pay.get("company_avg")
+        if c:
+            lines.append(f"• <b>[참고]</b> 이 회사 전체 평균 {_esc(c['average'])}")
+            lines.append(f"  <i>{_esc(c['basis'])} · 출처: {_esc(c.get('source') or '')}</i>")
         if lines:
             out += ["", "💰 <b>연봉</b>", *lines]
 

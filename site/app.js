@@ -3,16 +3,37 @@
 const E = (s) => String(s ?? "").replace(/[&<>"]/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+// ── 언어 ─────────────────────────────────────────────
+// 화면 문구는 ui.js 의 UI, 공고 내용은 data.json 의 i18n 에서 온다.
+let LANG = (localStorage.getItem("lang") || "").trim();
+if (!UI[LANG]) LANG = "ko";
+
+function T(key, vars) {
+  let v = (UI[LANG] && UI[LANG][key]) ?? (UI.ko[key] ?? key);
+  if (vars) for (const [k, x] of Object.entries(vars)) v = v.replaceAll("{" + k + "}", x);
+  return v;
+}
+
+// 공고 한 건에서 지금 언어의 값을 꺼낸다. 번역이 아직 없으면 원문을 그대로 쓴다.
+function F(p, field) {
+  const t = p && p.i18n && p.i18n[LANG];
+  const v = t && t[field];
+  if (Array.isArray(v) ? v.length : (v !== undefined && v !== null && v !== "")) return v;
+  return p ? p[field] : undefined;
+}
+
 const GATES = [
-  { k: "open",     v: "--open",     t: "지원 가능",   d: "외국인 지원 가능이 적혀 있거나, 대만이라 국적 문제가 없다" },
-  { k: "ask",      v: "--ask",      t: "문의 필요",   d: "외국인 채용 언급이 아예 없다. 담당자에게 먼저 물어봐야 한다" },
-  { k: "native",   v: "--native",   t: "어학 장벽",   d: "TOPIK·JLPT 급수나 현지어가 필수로 적혀 있다" },
-  { k: "domestic", v: "--domestic", t: "국내 유학생 전형", d: "외국인은 뽑지만 한국·일본 대학을 나온 유학생이 대상이다. 미국 졸업자는 해당 없음" },
-  { k: "closed",   v: "--closed",   t: "지원 불가",   d: "외국인 불가 또는 비자 스폰서 불가가 명시돼 있다" },
-];
+  { k: "open",     v: "--open" },
+  { k: "ask",      v: "--ask" },
+  { k: "native",   v: "--native" },
+  { k: "domestic", v: "--domestic" },
+  { k: "closed",   v: "--closed" },
+].map(g => ({ ...g, get t() { return T("g_" + g.k); }, get d() { return T("g_" + g.k + "_d"); } }));
 const FLAG = { KR: "🇰🇷", JP: "🇯🇵", TW: "🇹🇼" };
-const TRACK = { new_grad: "신입공채", intern: "인턴", intern_to_fulltime: "전환형 인턴",
-                entry_level: "신입", year_round: "상시채용", other: "기타" };
+const TRACK_KEY = { new_grad: "track_new_grad", intern: "track_intern",
+                    intern_to_fulltime: "track_intern_ft", entry_level: "track_new_grad",
+                    year_round: "track_year_round", other: "tier_other" };
+const trackLabel = (k) => T(TRACK_KEY[k] || "tier_other");
 
 let DATA = null;
 const state = { country: "all", gates: new Set(), q: "", view: "live" };
@@ -53,17 +74,15 @@ function render() {
   const openOther = P.filter(p => p.gate === "open" && p.country !== "TW").length;
   const intern = P.filter(p => /intern/.test(p.track) && p.gate !== "closed").length;
   const guide = [
-    ["지금 바로 넣을 수 있는 곳부터 보고 싶다",
-     `<b>지원 가능 ${gc.open || 0}건</b> — 대만 ${openTw} · 그 외 ${openOther}`],
-    ["마감이 임박한 게 있는지 보고 싶다",
-     soon.length ? `<b>2주 내 마감 ${soon.length}건</b> — ${soon.slice(0,3).map(s=>{
+    [T("q_now"),
+     `<b>${T("g_open")} ${gc.open || 0}</b> — ${T("tw")} ${openTw} · ${T("q_now_other")} ${openOther}`],
+    [T("q_soon"),
+     soon.length ? `<b>${T("q_soon_n", { n: soon.length })}</b> — ${soon.slice(0,3).map(s=>{
        const d=daysLeft(s.deadline, s.country);
-       return `${E(s.company||s.office_name)} <b>${d===0?"오늘 마감":"D-"+d}</b>`;}).join(" · ")}` : "2주 내 마감 없음"],
-    ["일단 인턴으로 발을 들이고 싶다", `<b>인턴·전환형 ${intern}건</b>`],
-    ["한국어가 안 되는데 한국도 되나",
-     `한국 공고 대부분은 외국인 채용을 <b>언급하지 않는다</b>. 그건 불가가 아니라 미확인이라, <b>문의 필요 ${gc.ask||0}건</b>은 메일 한 통으로 갈린다`],
-    ["한국 대기업 외국인 전형은 왜 안 되나",
-     `그쪽은 대개 <b>한국 대학을 나온 유학생</b>이 대상이고 TOPIK 급수를 요구한다. 미국 졸업자는 해당이 안 돼서 <b>국내 유학생 전형 ${gc.domestic||0}건</b>으로 따로 뺐다`],
+       return `${E(s.company||s.office_name)} <b>${d===0?T("today_due"):"D-"+d}</b>`;}).join(" · ")}` : T("none_soon")],
+    [T("q_intern"), `<b>${T("q_intern_n", { n: intern })}</b>`],
+    [T("q_korean"), T("a_korean", { n: gc.ask || 0 })],
+    [T("q_domestic"), T("a_domestic", { n: gc.domestic || 0 })],
   ];
   document.getElementById("guide").innerHTML =
     guide.map(([q, a]) => `<tr><td>${E(q)}</td><td>${a}</td></tr>`).join("");
@@ -92,9 +111,9 @@ function render() {
   const inC = (p) => state.country === "all" || p.country === state.country;
   const live = P.filter(p => inC(p) && !p.expired).length;
   const past = P.filter(p => inC(p) && p.expired).length;
-  document.querySelector('.chip[data-v="live"]').textContent = `진행중 ${live}`;
-  document.querySelector('.chip[data-v="past"]').textContent = `지난 공고 ${past}`;
-  document.getElementById("count").textContent = `${list.length}건 표시`;
+  document.querySelector('.chip[data-v="live"]').textContent = `${T("live")} ${live}`;
+  document.querySelector('.chip[data-v="past"]').textContent = `${T("past")} ${past}`;
+  document.getElementById("count").textContent = `${T("count", { n: list.length })}`;
   syncClearButton();
   // 지난 공고 탭에서는 아카이브(가벼운 과거 기록)도 같이 보여준다
   if (state.view === "past") {
@@ -104,30 +123,30 @@ function render() {
       (!q2 || `${a.company} ${a.title}`.toLowerCase().includes(q2)));
     list = list.concat(arch.map(a => ({
       ...a, archive: true, gate: "ask", gate_icon: "🗄",
-      gate_label: "지난 기록", gate_reason: "마감된 공고의 요약 기록 (상세 없음)",
+      gate_label: T("archive_h"), gate_reason: T("archive_note"),
       track: "other", expired: true, deadline: a.deadline || a.posted_at,
       source_url: a.url, office_name: a.company, summary: "",
     })));
     list.sort((a, b) => String(b.deadline || b.posted_at || "")
       .localeCompare(String(a.deadline || a.posted_at || "")));
-    document.getElementById("count").textContent = `${list.length}건 표시`;
+    document.getElementById("count").textContent = T("count", { n: list.length });
   syncClearButton();
   }
 
   const rowsEl = document.getElementById("rows");
   if (!list.length) {
     rowsEl.innerHTML = `<p class="empty">${state.view === "past"
-      ? "지난 공고가 아직 없다. 마감이 지나면 여기 쌓인다." : "조건에 맞는 공고가 없다. 필터를 넓혀 보라."}</p>`;
+      ? T("empty_past") : T("empty")}</p>`;
     return;
   }
   if (state.view === "past" && state.country === "all") {
     // 지난 공고는 나라별로 묶어서 본다 — 어느 나라가 언제 뽑았는지가 요점이다
     const order = ["KR", "JP", "TW"];
-    const NAME = { KR: "🇰🇷 한국", JP: "🇯🇵 일본", TW: "🇹🇼 대만" };
+    const NAME = { KR: T("kr"), JP: T("jp"), TW: T("tw") };
     rowsEl.innerHTML = order.filter(c => list.some(p => p.country === c)).map(c => {
       const g = list.filter(p => p.country === c);
       const years = [...new Set(g.map(p => (p.deadline || "").slice(0, 4)).filter(Boolean))];
-      return `<div class="grouphead">${NAME[c]} <span>${g.length}건${
+      return `<div class="grouphead">${NAME[c]} <span>${T("count", { n: g.length })}${
         years.length ? " · " + years.sort().reverse().join(" / ") : ""}</span></div>`
         + g.map(row).join("");
     }).join("");
@@ -143,102 +162,102 @@ function bullets(items, label) {
 
 function mailBlock(k) {
   const id = "m" + Math.random().toString(36).slice(2, 9);
-  return `<details class="mail" open><summary>📨 문의 메일 초안 — 복사해서 보내면 된다</summary>
+  return `<details class="mail" open><summary>📨 ${T("mail_h")}</summary>
     <div class="jd" style="grid-template-columns:1fr">
-      <div><h4>제목</h4><p>${E(k.subject)}</p></div>
-      <div><h4>본문</h4><p id="${id}" style="white-space:pre-wrap">${E(k.body)}</p>
-        <button class="chip" style="margin-top:9px" data-copy="${id}">본문 복사</button></div>
-      ${k.hooks?.length ? `<div><h4>엮을 거리</h4><ul>${k.hooks.map(x=>`<li>${E(x)}</li>`).join("")}</ul></div>` : ""}
-      ${k.ask_points?.length ? `<div><h4>꼭 물어볼 것</h4><ul>${k.ask_points.map(x=>`<li>${E(x)}</li>`).join("")}</ul></div>` : ""}
+      <div><h4>${T("mail_subject")}</h4><p>${E(k.subject)}</p></div>
+      <div><h4>${T("mail_body")}</h4><p id="${id}" style="white-space:pre-wrap">${E(k.body)}</p>
+        <button class="chip" style="margin-top:9px" data-copy="${id}">${T("mail_copy")}</button></div>
+      ${k.hooks?.length ? `<div><h4>${T("hooks")}</h4><ul>${k.hooks.map(x=>`<li>${E(x)}</li>`).join("")}</ul></div>` : ""}
+      ${k.ask_points?.length ? `<div><h4>${T("asks")}</h4><ul>${k.ask_points.map(x=>`<li>${E(x)}</li>`).join("")}</ul></div>` : ""}
     </div></details>`;
 }
 
 function row(p) {
   if (p.archive) {
-    const when = p.posted_at ? `게시 ${E(p.posted_at)}` : "";
-    const dl = p.deadline && p.deadline !== p.posted_at ? ` · 마감 ${E(p.deadline)}` : "";
+    const when = p.posted_at ? `${T("posted")} ${E(p.posted_at)}` : "";
+    const dl = p.deadline && p.deadline !== p.posted_at ? ` · ${T("deadline")} ${E(p.deadline)}` : "";
     return `<article class="row arch" style="--g:var(--closed)">
       <div class="stripe"></div><div class="rbody">
-        <div class="rtop"><span class="gatechip">🗄 지난 기록</span>
-          <span class="rtitle">${E(p.title)}</span>
+        <div class="rtop"><span class="gatechip">🗄 ${T("archive_h")}</span>
+          <span class="rtitle">${E(F(p, "title"))}</span>
           <span class="rfirm">${E(p.company || "")}</span></div>
         <div class="meta"><span>${when}${dl}</span><span>·</span><span>vmspace</span></div>
-        <p style="margin:9px 0 0"><a class="src" href="${E(p.url)}" target="_blank" rel="noopener">공고 원문 →</a></p>
+        <p style="margin:9px 0 0"><a class="src" href="${E(p.url)}" target="_blank" rel="noopener">${T("source")}</a></p>
       </div></article>`;
   }
   const g = GATES.find(x => x.k === p.gate) || GATES[1];
   const dl = daysLeft(p.deadline, p.country);
   const meta = [
     FLAG[p.country] + " " + E(p.location || p.office_name),
-    TRACK[p.track] || p.track,
+    trackLabel(p.track),
     // 고용형태가 트랙과 같은 말이면 두 번 쓰지 않는다 ("인턴 · 인턴")
-    p.employment_type && !new RegExp(TRACK[p.track] || "\u0000").test(p.employment_type)
+    p.employment_type && !new RegExp(trackLabel(p.track) || "\u0000").test(F(p, "employment_type"))
       && !/^(intern(ship)?|인턴)$/i.test(p.employment_type.trim()) ? E(p.employment_type) : "",
-    p.deadline ? `<span class="${dl !== null && dl <= 14 ? "due" : ""}">${p.expired ? "마감됨" : "마감"} ${E(p.deadline)}${dl !== null && dl >= 0 && dl <= 30 ? ` (D-${dl})` : ""}</span>` : "",
+    p.deadline ? `<span class="${dl !== null && dl <= 14 ? "due" : ""}">${p.expired ? T("expired") : T("deadline")} ${E(p.deadline)}${dl !== null && dl >= 0 && dl <= 30 ? ` (D-${dl})` : ""}</span>` : "",
   ].filter(Boolean);
 
-  const facts = [["고용형태", p.employment_type],
-                 ["전형", p.process], ["언어 요건", p.language_required]]
+  const facts = [[T("cond_employ"), F(p, "employment_type")],
+                 [T("cond_process"), F(p, "process")], [T("cond_lang"), F(p, "language_required")]]
     .filter(([, v]) => v).map(([k, v]) => `${E(k)}: ${E(v)}`);
 
   const jd = [
-    bullets(p.responsibilities, "담당 업무"),
-    bullets(p.qualifications, "자격 요건"),
-    bullets(p.preferred, "우대 사항"),
-    p.software?.length ? `<div><h4>요구 툴</h4><p>${E(p.software.join(" · "))}</p></div>` : "",
-    facts.length ? `<div><h4>조건</h4><p>${facts.join("<br>")}</p></div>` : "",
-    p.notes ? `<div><h4>확인 안 됨</h4><p>${E(p.notes)}</p></div>` : "",
+    bullets(F(p, "responsibilities"), T("resp")),
+    bullets(F(p, "qualifications"), T("qual")),
+    bullets(F(p, "preferred"), T("pref")),
+    p.software?.length ? `<div><h4>${T("soft")}</h4><p>${E(p.software.join(" · "))}</p></div>` : "",
+    facts.length ? `<div><h4>${T("cond")}</h4><p>${facts.join("<br>")}</p></div>` : "",
+    F(p, "notes") ? `<div><h4>${T("unknown_h")}</h4><p>${E(F(p, "notes"))}</p></div>` : "",
     (p.contact_email || p.contact_phone || p.apply_how)
-      ? `<div><h4>연락처 · 지원 방법</h4><p>${[
+      ? `<div><h4>${T("contact_h")}</h4><p>${[
           p.contact_email ? `✉️ <a class="src" href="mailto:${E(p.contact_email)}">${E(p.contact_email)}</a>` : "",
           p.contact_phone ? `☎️ ${E(p.contact_phone)}` : "",
-          p.apply_how ? E(p.apply_how) : ""].filter(Boolean).join("<br>")}</p></div>` : "",
-    bullets(p.firm_projects, "이 사무소 프로젝트"),
-    p.pay ? `<div><h4>연봉</h4><p>${[
-        p.pay.stated ? `공고 명시: <b>${E(p.pay.stated)}</b>`
-                     : (p.salary ? `공고 명시: ${E(p.salary)} <span style="opacity:.6">(금액 없음)</span>` : ""),
-        p.pay.benchmark ? `업계 참고(신입): <b>${E(p.pay.benchmark.range)}</b>` : "",
-        p.pay.benchmark?.note ? `<span style="opacity:.75">${E(p.pay.benchmark.note)}</span>` : "",
-        p.pay.benchmark ? `<span style="opacity:.6">※ ${E(p.pay.benchmark.disclaimer)}</span>` : "",
+          F(p, "apply_how") ? E(F(p, "apply_how")) : ""].filter(Boolean).join("<br>")}</p></div>` : "",
+    bullets(F(p, "firm_projects"), T("projects")),
+    p.pay ? `<div><h4>${T("pay")}</h4><p>${[
+        p.pay.stated ? `${T("pay_stated")}: <b>${E(p.pay.stated)}</b>`
+                     : (p.salary ? `${T("pay_stated")}: ${E(p.salary)} <span style="opacity:.6">${T("pay_noamt")}</span>` : ""),
+        p.pay.company_avg ? `<span class="rumor">${T("pay_ref")}</span> ${T("pay_avg")} <b>${E(p.pay.company_avg.average)}</b>` : "",
+        p.pay.company_avg ? `<span style="opacity:.6">${E(F(p, "pay_note") || p.pay.company_avg.basis)} · ${T("pay_src")}: ${E(p.pay.company_avg.source)}</span>` : "",
+        (!p.pay.stated && !p.salary && !p.pay.company_avg) ? `<span style="opacity:.6">${T("pay_none")}</span>` : "",
       ].filter(Boolean).join("<br>")}</p></div>` : "",
-    bullets(p.blockers_desc, "걸리는 조건"),
-    bullets(p.soft_desc, "준비하면 넘는 조건"),
-    bullets(p.met, "충족하는 조건"),
-    bullets(p.unknowns, "확인이 필요한 것"),
+    bullets(F(p, "blockers_desc"), T("blockers")),
+    bullets(F(p, "soft_desc"), T("softb")),
+    bullets(F(p, "met"), T("met")),
+    bullets(F(p, "unknowns"), T("unknowns")),
   ].join("");
 
   return `<article class="row" style="--g:var(${g.v})">
     <div class="stripe"></div>
     <div class="rbody">
       <div class="rtop">
-        <span class="gatechip">${p.gate_icon} ${E(g.t)}</span>
+        <span class="gatechip">${p.gate_icon} ${E(F(p, "gate_label") || g.t)}</span>
         ${fitChip(p)}
-        <span class="rtitle">${E(p.title)}</span>
+        <span class="rtitle">${E(F(p, "title"))}</span>
         <span class="rfirm">${E(p.company || p.office_name)}</span>
       </div>
-      ${dl !== null && dl >= 0 && dl <= 3 ? `<p class="urgent">🚨 ${dl === 0 ? "오늘 마감" : "D-" + dl + " 마감 임박"}</p>` : ""}
+      ${dl !== null && dl >= 0 && dl <= 3 ? `<p class="urgent">🚨 ${dl === 0 ? T("today_due") : T("due_in", { n: dl })}</p>` : ""}
       <div class="meta">${meta.map(m => `<span>${m}</span>`).join("<span>·</span>")}</div>
-      <p class="why"><b>${E(p.gate_label)}</b> — ${E(p.gate_evidence || p.gate_reason)}</p>
-      ${p.gate_action ? `<p class="act">👉 ${E(p.gate_action)}</p>` : ""}
-      ${p.summary ? `<p class="why">${E(p.summary)}</p>` : ""}
-      ${jd ? `<div class="jd">${jd}</div>` : `<p class="thin">이 공고는 원문 페이지에 상세 내용이 없다. 출처를 직접 확인해야 한다.</p>`}
+      <p class="why"><b>${E(F(p, "gate_label"))}</b> — ${E(F(p, "gate_evidence") || F(p, "gate_reason"))}</p>
+      ${F(p, "gate_action") ? `<p class="act">👉 ${E(F(p, "gate_action"))}</p>` : ""}
+      ${F(p, "summary") ? `<p class="why">${E(F(p, "summary"))}</p>` : ""}
+      ${jd ? `<div class="jd">${jd}</div>` : `<p class="thin">${T("thin")}</p>`}
       ${p.outreach ? mailBlock(p.outreach) : ""}
-      <p style="margin:10px 0 0"><a class="src" href="${E(p.source_url)}" target="_blank" rel="noopener">공고 원문 →</a></p>
+      <p style="margin:10px 0 0"><a class="src" href="${E(p.source_url)}" target="_blank" rel="noopener">${T("source")}</a></p>
     </div></article>`;
 }
 
 // 지원 추천도 — 사무소 수준과 포트폴리오 접점으로 매긴다 (src/relevance.py: fit_grade)
 const FIT = {
-  recommend: { t: "추천", i: "\u{1F44D}", c: "#2f7d51" },
-  neutral:   { t: "중립", i: "\u2796",    c: "#8a8a8a" },
-  avoid:     { t: "비추천", i: "\u{1F44E}", c: "#a3452f" },
+  recommend: { k: "fit_recommend", i: "\u{1F44D}", c: "#2f7d51" },
+  neutral:   { k: "fit_neutral",   i: "\u2796",    c: "#8a8a8a" },
+  avoid:     { k: "fit_avoid",     i: "\u{1F44E}", c: "#a3452f" },
 };
 
 function fitChip(p) {
   const f = FIT[p.fit];
   if (!f) return "";
-  const why = (p.fit_why || []).join(" · ");
-  return `<span class="fitchip" style="--fc:${f.c}" title="${E(why)}">${f.i} ${f.t}</span>`;
+  const why = (F(p, "fit_why") || []).join(" · ");
+  return `<span class="fitchip" style="--fc:${f.c}" title="${E(why)}">${f.i} ${T(f.k)}</span>`;
 }
 
 function syncClearButton() {
@@ -248,6 +267,9 @@ function syncClearButton() {
 }
 
 function bind() {
+  document.querySelectorAll(".lang").forEach(b =>
+    b.addEventListener("click", () => setLang(b.dataset.lang)));
+
   document.getElementById("clear").addEventListener("click", () => {
     state.country = "all"; state.gates.clear(); state.q = "";
     document.getElementById("q").value = "";
@@ -278,9 +300,9 @@ function bind() {
   document.getElementById("rows").addEventListener("click", async e => {
     const b = e.target.closest("[data-copy]"); if (!b) return;
     const t = document.getElementById(b.dataset.copy)?.innerText || "";
-    try { await navigator.clipboard.writeText(t); b.textContent = "복사됨 ✓"; }
-    catch { b.textContent = "복사 실패 — 직접 선택하세요"; }
-    setTimeout(() => (b.textContent = "본문 복사"), 2200);
+    try { await navigator.clipboard.writeText(t); b.textContent = T("mail_copied"); }
+    catch { b.textContent = T("mail_failed"); }
+    setTimeout(() => (b.textContent = T("mail_copy")), 2200);
   });
   document.getElementById("q").addEventListener("input", e => {
     state.q = e.target.value; render();
@@ -297,7 +319,7 @@ async function fetchData() {
   return r.json();
 }
 
-const TIER_LABEL = { atelier: "아틀리에", large: "대형", mid: "중견", global: "글로벌" };
+const tierLabel = (t) => T({ atelier: "tier_atelier", large: "tier_large", mid: "tier_mid", global: "tier_global" }[t] || "tier_other");
 
 // 공고를 내지 않는 사무소. 한국 아틀리에는 대부분 여기 속한다 —
 // 공고를 기다리는 게 아니라 포트폴리오를 보내는 자리다.
@@ -308,30 +330,54 @@ function paintOpenApply() {
     state.country === "all" || o.country === state.country);
   document.getElementById("open-sec").hidden = list.length === 0;
   document.getElementById("open-h").textContent =
-    `공고 없음 — 상시 지원할 곳 (${list.length}곳)`;
+    T("open_h", { n: list.length });
   box.innerHTML = list.map(o => {
     const links = [];
     if (o.email) links.push(`<a class="mail" href="mailto:${E(o.email)}">${E(o.email)}</a>`);
-    if (o.site) links.push(`<a href="${E(o.site)}" target="_blank" rel="noopener">사무소 사이트 →</a>`);
-    if (o.careers_url) links.push(`<a href="${E(o.careers_url)}" target="_blank" rel="noopener">채용 페이지 →</a>`);
+    if (o.site) links.push(`<a href="${E(o.site)}" target="_blank" rel="noopener">${T("site_link")}</a>`);
+    if (o.careers_url) links.push(`<a href="${E(o.careers_url)}" target="_blank" rel="noopener">${T("careers_link")}</a>`);
     return `<div class="ocard">
-      <b>${E(o.name_local)}</b><span class="t">${E(TIER_LABEL[o.tier] || o.tier || "")}${o.city ? " · " + E(o.city) : ""}</span>
+      <b>${E(o.name_local)}</b><span class="t">${E(tierLabel(o.tier))}${o.city ? " · " + E(o.city) : ""}</span>
       ${o.note ? `<p>${E(o.note)}</p>` : ""}
-      <p>${E(o.why)}${o.open_application ? " · <b>상시 포트폴리오 접수</b>" : ""}</p>
+      <p>${E(o.why)}${o.open_application ? " · <b>" + T("open_always") + "</b>" : ""}</p>
       ${links.length ? `<p>${links.join("")}</p>` : ""}
     </div>`;
   }).join("");
 }
 
+// data-i18n 이 붙은 노드의 글자를 지금 언어로 바꾼다
+function applyStatic() {
+  document.documentElement.lang = LANG === "zh_TW" ? "zh-Hant" : LANG;
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = T(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+    el.placeholder = T(el.dataset.i18nPh);
+  });
+  document.querySelectorAll(".lang").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.lang === LANG));
+  });
+}
+
+function setLang(lang) {
+  if (!UI[lang] || lang === LANG) return;
+  LANG = lang;
+  try { localStorage.setItem("lang", lang); } catch (e) { /* 사파리 프라이빗 등 */ }
+  applyStatic();
+  paintMeta();
+  render();
+}
+
 function paintMeta() {
   const off = DATA.offices, tracked = off.filter(o => o.status === "ok").length;
   document.getElementById("k-off").innerHTML = `${tracked}<small> / ${off.length}</small>`;
-  document.getElementById("k-post").innerHTML = `${DATA.postings.length}<small> 건</small>`;
+  document.getElementById("k-post").innerHTML = `${DATA.postings.length}`;
   const t = new Date(DATA.generated_at);
+  const locale = { ko: "ko-KR", en: "en-US", zh_TW: "zh-TW" }[LANG] || "ko-KR";
   document.getElementById("k-time").textContent =
-    t.toLocaleString("ko-KR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    t.toLocaleString(locale, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
   const un = off.filter(o => o.status !== "ok");
-  document.getElementById("gap-h").textContent = `아직 추적하지 못하는 사무소 — ${un.length}곳`;
+  document.getElementById("gap-h").textContent = T("gap_h", { n: un.length });
   document.getElementById("gaps").innerHTML = un.map(o =>
     `<span class="gapitem">${E(o.name_local)} <span style="opacity:.55">${o.country}</span></span>`).join("");
 }
@@ -357,7 +403,7 @@ async function poll() {
       paintMeta();
       render();
       const diff = DATA.postings.length - before;
-      toast(diff > 0 ? `새 공고 ${diff}건이 들어왔다` : "목록이 갱신됐다");
+      toast(diff > 0 ? T("toast_new", { n: diff }) : T("toast_upd"));
     }
   } catch (e) { /* 일시적 실패는 무시하고 다음 주기에 다시 본다 */ }
 }
@@ -367,9 +413,10 @@ async function poll() {
     DATA = await fetchData();
   } catch (e) {
     document.getElementById("rows").innerHTML =
-      `<p class="empty">데이터를 불러오지 못했다. 잠시 뒤 새로고침해 보라.</p>`;
+      `<p class="empty">${T("load_fail")}</p>`;
     return;
   }
+  applyStatic();
   paintMeta();
 
   bind();

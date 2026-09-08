@@ -18,7 +18,7 @@ DOCS = ROOT / "docs"
 SITE = ROOT / "site"
 
 DOCS.mkdir(exist_ok=True)
-for name in ("index.html", "app.js"):
+for name in ("index.html", "app.js", "ui.js"):
     shutil.copyfile(SITE / name, DOCS / name)
 (DOCS / ".nojekyll").write_text("", encoding="utf-8")
 

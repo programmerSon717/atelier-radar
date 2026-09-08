@@ -100,7 +100,7 @@ def build() -> dict:
             continue
         fit_grade, fit_why = relevance.fit_grade(p, off, a)
         e = eligibility.judge(p, pc)
-        pay = salary.describe(p, pc, off.tier)
+        pay = salary.describe(p, pc, off.tier, off.id)
         posts.append({
             # _outreach 원본(실명이 들어 있다)이 그대로 실리지 않게 밑줄 키는 빼고 펼친다.
             # 아래에서 가린 사본만 "outreach" 로 싣는다.
@@ -114,6 +114,8 @@ def build() -> dict:
             # 이름을 모르는 채로 공개 사이트에 메일 초안을 싣지 않는다.
             # (워크플로에서 시크릿을 안 넘기면 여기서 통째로 빠진다)
             "outreach": _redact(d.get("_outreach")) if _identity_known() else None,
+            # 세 언어 번역 (tools/translate_postings.py 가 넣는다). 해시는 내부용이라 뺀다.
+            "i18n": {k: v for k, v in (d.get("_i18n") or {}).items() if k != "hash"} or None,
             "grade": grade, "grade_why": grade_why, "pay": pay,
             "fit": fit_grade, "fit_why": fit_why,
             "gate_reason": e.reason, "gate_evidence": e.evidence, "gate_action": e.action,

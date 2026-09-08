@@ -1,8 +1,14 @@
 """연봉 정보를 붙인다.
 
-공고 대부분이 "면접 후 결정 / 회사 내규"라 회사별 실제 금액을 알 수 없다.
-그렇다고 비워두면 판단이 안 되므로, **업계 참고 범위**를 따로 표시한다.
-회사 값인 척하지 않는 것이 핵심이다 — 화면에도 출처를 명시한다.
+사용자 지시: **업계 평균은 적지 마라.** 그건 그 회사 이야기가 아니라서 판단에 도움이
+안 된다. 대신 두 가지만 싣는다.
+
+  1) 공고에 실제로 적힌 금액
+  2) 그 회사에 대해 실제로 돌아다니는 이야기 (블라인드·잡플래닛·OpenWork·104 등).
+     정확한 값이 아니므로 **[카더라]** 라고 붙여서, 확인된 값과 절대 섞이지 않게 한다.
+
+2번은 사람이 확인해 data/verified/salary.yaml 에 적어 넣는다. 자동으로 긁지 않는다 —
+블라인드는 로그인이 필요하고, 로그인 뒤 내용을 긁는 건 하지 않기로 했다.
 """
 from pathlib import Path
 from typing import Any, Optional
@@ -35,6 +41,40 @@ def stated(posting) -> Optional[str]:
     return s
 
 
+RUMOR_PATH = ROOT / "data" / "salary_company.yaml"
+_RUMOR: Optional[dict] = None
+
+
+def rumors() -> dict:
+    """회사별 연봉. tools/fetch_company_salary.py 가 사람인에서 받아 채운다."""
+    global _RUMOR
+    if _RUMOR is None:
+        if RUMOR_PATH.exists():
+            _RUMOR = yaml.safe_load(RUMOR_PATH.read_text(encoding="utf-8")) or {}
+        else:
+            _RUMOR = {}
+    return _RUMOR
+
+
+def _norm(x: str) -> str:
+    import re
+    return re.sub(r"[\s·,.\-_()（）]|주식회사|㈜|\(주\)|株式会社|有限公司", "", (x or "")).lower()
+
+
+def rumor(company: Optional[str], office_id: Optional[str]) -> Optional[dict[str, Any]]:
+    """이 회사 값이 있으면 돌려준다. 없으면 None. 업계 평균은 쓰지 않는다."""
+    tbl = rumors().get("companies") or {}
+    n = _norm(company)
+    if not n:
+        return None
+    for k, v in tbl.items():
+        for alias in [k, v.get("company", "")]:
+            a = _norm(alias)
+            if a and (a == n or a in n or n in a):
+                return {**v, "key": k}
+    return None
+
+
 def benchmark(country: str, tier: Optional[str]) -> Optional[dict[str, Any]]:
     """(국가, 사무소 성격) → 신입 참고 범위. 모르면 None."""
     t = table().get(country)
@@ -53,6 +93,10 @@ def benchmark(country: str, tier: Optional[str]) -> Optional[dict[str, Any]]:
     }
 
 
-def describe(posting, country: str, tier: Optional[str]) -> dict[str, Any]:
-    """화면에 그대로 쓸 수 있는 형태로."""
-    return {"stated": stated(posting), "benchmark": benchmark(country, tier)}
+def describe(posting, country: str, tier: Optional[str],
+             office_id: Optional[str] = None) -> dict[str, Any]:
+    """화면에 그대로 쓸 수 있는 형태로. 업계 평균은 넣지 않는다."""
+    return {
+        "stated": stated(posting),
+        "company_avg": rumor(getattr(posting, "company", None), office_id),
+    }
