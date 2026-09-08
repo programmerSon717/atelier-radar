@@ -79,7 +79,7 @@ function render() {
     [T("q_soon"),
      soon.length ? `<b>${T("q_soon_n", { n: soon.length })}</b> — ${soon.slice(0,3).map(s=>{
        const d=daysLeft(s.deadline, s.country);
-       return `${E(s.company||s.office_name)} <b>${d===0?T("today_due"):"D-"+d}</b>`;}).join(" · ")}` : T("none_soon")],
+       return `${E(F(s, "company")||s.office_name)} <b>${d===0?T("today_due"):"D-"+d}</b>`;}).join(" · ")}` : T("none_soon")],
     [T("q_intern"), `<b>${T("q_intern_n", { n: intern })}</b>`],
     [T("q_korean"), T("a_korean", { n: gc.ask || 0 })],
     [T("q_domestic"), T("a_domestic", { n: gc.domestic || 0 })],
@@ -160,15 +160,28 @@ function bullets(items, label) {
   return `<div><h4>${label}</h4><ul>${items.map(x => `<li>${E(x)}</li>`).join("")}</ul></div>`;
 }
 
-function mailBlock(k) {
+// 메일은 두 벌을 보여준다.
+//  · 읽는 사람 말로 옮긴 것 — 무슨 내용인지 알아야 하니까
+//  · 보낼 원문 — 한국 사무소에 영어로 보낼 수는 없다. 복사 버튼은 이쪽을 집는다.
+function mailBlock(k, p) {
   const id = "m" + Math.random().toString(36).slice(2, 9);
+  const subj = F(p, "mail_subject") || k.subject;
+  const body = F(p, "mail_body") || k.body;
+  const hooks = F(p, "mail_hooks") || k.hooks || [];
+  const asks = F(p, "mail_asks") || k.ask_points || [];
+  const translated = body !== k.body;
   return `<details class="mail" open><summary>📨 ${T("mail_h")}</summary>
     <div class="jd" style="grid-template-columns:1fr">
-      <div><h4>${T("mail_subject")}</h4><p>${E(k.subject)}</p></div>
-      <div><h4>${T("mail_body")}</h4><p id="${id}" style="white-space:pre-wrap">${E(k.body)}</p>
-        <button class="chip" style="margin-top:9px" data-copy="${id}">${T("mail_copy")}</button></div>
-      ${k.hooks?.length ? `<div><h4>${T("hooks")}</h4><ul>${k.hooks.map(x=>`<li>${E(x)}</li>`).join("")}</ul></div>` : ""}
-      ${k.ask_points?.length ? `<div><h4>${T("asks")}</h4><ul>${k.ask_points.map(x=>`<li>${E(x)}</li>`).join("")}</ul></div>` : ""}
+      <div><h4>${T("mail_subject")}</h4><p>${E(subj)}</p></div>
+      <div><h4>${T("mail_body")}</h4><p style="white-space:pre-wrap">${E(body)}</p></div>
+      ${translated ? `<div><h4>${T("mail_original")}</h4>
+        <p class="note" style="margin:0 0 6px">${T("mail_send_note")}</p>
+        <p id="${id}" style="white-space:pre-wrap;opacity:.85">${E(k.body)}</p>
+        <button class="chip" style="margin-top:9px" data-copy="${id}">${T("mail_copy")}</button></div>`
+      : `<div><p id="${id}" hidden>${E(k.body)}</p>
+        <button class="chip" data-copy="${id}">${T("mail_copy")}</button></div>`}
+      ${hooks.length ? `<div><h4>${T("hooks")}</h4><ul>${hooks.map(x=>`<li>${E(x)}</li>`).join("")}</ul></div>` : ""}
+      ${asks.length ? `<div><h4>${T("asks")}</h4><ul>${asks.map(x=>`<li>${E(x)}</li>`).join("")}</ul></div>` : ""}
     </div></details>`;
 }
 
@@ -233,7 +246,7 @@ function row(p) {
         <span class="gatechip">${p.gate_icon} ${E(F(p, "gate_label") || g.t)}</span>
         ${fitChip(p)}
         <span class="rtitle">${E(F(p, "title"))}</span>
-        <span class="rfirm">${E(p.company || p.office_name)}</span>
+        <span class="rfirm">${E(F(p, "company") || p.office_name)}</span>
       </div>
       ${dl !== null && dl >= 0 && dl <= 3 ? `<p class="urgent">🚨 ${dl === 0 ? T("today_due") : T("due_in", { n: dl })}</p>` : ""}
       <div class="meta">${meta.map(m => `<span>${m}</span>`).join("<span>·</span>")}</div>
@@ -241,7 +254,7 @@ function row(p) {
       ${F(p, "gate_action") ? `<p class="act">👉 ${E(F(p, "gate_action"))}</p>` : ""}
       ${F(p, "summary") ? `<p class="why">${E(F(p, "summary"))}</p>` : ""}
       ${jd ? `<div class="jd">${jd}</div>` : `<p class="thin">${T("thin")}</p>`}
-      ${p.outreach ? mailBlock(p.outreach) : ""}
+      ${p.outreach ? mailBlock(p.outreach, p) : ""}
       <p style="margin:10px 0 0"><a class="src" href="${E(p.source_url)}" target="_blank" rel="noopener">${T("source")}</a></p>
     </div></article>`;
 }

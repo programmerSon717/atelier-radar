@@ -8,13 +8,16 @@
 """
 import hashlib
 import json
+import re
 from typing import Any, Optional
 
-FIELDS_TEXT = ("title", "summary", "location", "employment_type", "process", "apply_how",
-               "language_required", "salary", "notes", "gate_label", "gate_reason",
-               "gate_evidence", "gate_action", "pay_note")
+FIELDS_TEXT = ("title", "company", "summary", "location", "employment_type", "process",
+               "apply_how", "language_required", "salary", "notes", "gate_label",
+               "gate_reason", "gate_evidence", "gate_action", "pay_note",
+               "mail_subject", "mail_body")
 FIELDS_LIST = ("responsibilities", "qualifications", "preferred", "firm_projects",
-               "blockers_desc", "soft_desc", "met", "unknowns", "fit_why")
+               "blockers_desc", "soft_desc", "met", "unknowns", "fit_why",
+               "mail_hooks", "mail_asks")
 
 LANGS = ("ko", "en", "zh_TW")
 
@@ -50,13 +53,21 @@ SYSTEM = """\
 2. 직역하지 마라. 그 나라 채용공고가 실제로 쓰는 말로 옮긴다.
    영어는 미국 건축사무소 채용공고 문체, 번체중문은 대만 사무소 공고 문체로 쓴다.
    "応募" 를 "응모" 라고 옮기는 식의 기계적 번역은 하지 마라 — "지원" 이다.
-3. 고유명사(회사명·프로젝트명·역명·상 이름)는 **원문 표기 그대로** 둔다.
+3. **회사명(company)은 그 언어권에서 통용되는 표기로 적는다.** 영어면 로마자 표기
+   (예: "(주)엔씨티엔지니어링종합건축사사무소" → "NCT Engineering Architects"),
+   번체중문이면 한자 표기. 통용 표기를 모르면 원문을 그대로 두고 지어내지 마라.
+   프로젝트명·역명·상 이름 같은 다른 고유명사는 **원문 표기 그대로** 둔다.
    다만 **주소·도시는 읽는 사람 말로 옮긴다** — "서울 마포구" 는 영어로 Mapo-gu, Seoul,
    번체중문으로 首爾 麻浦區 다. 번지·건물명은 원문을 살린다.
    한글 음을 지어서 붙이지 마라 — "大林組" 를 "오바마구미" 라고 쓴 적이 있다. 확실하지
    않으면 원문만 둔다.
 4. 자격 요건의 **수치·기간·급수·연도는 절대 바꾸지 마라** (TOEIC 700, N2, 2027년 2월 등).
-5. 아래 용어표는 그대로 따른다.
+5. mail_subject / mail_body 는 **읽으라고** 옮기는 것이다. 실제로 보낼 때는 원문을
+   그대로 보낸다 (한국 사무소에는 한국어로 보내야 하니까). 그러니 자연스럽게 옮기되
+   내용을 바꾸지 마라.
+6. **출력에 원문 언어가 남아 있으면 안 된다.** en 은 전부 영어로, zh_TW 는 전부
+   번체중문으로 쓴다. "언어 요건 미기재" 같은 조각을 그대로 두지 마라.
+7. 아래 용어표는 그대로 따른다.
 
 {glossary}
 """
@@ -93,7 +104,23 @@ def bundle_of(d: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def translate(client, bundle: dict[str, Any], cfg: dict) -> Optional[dict[str, Any]]:
+HANGUL = re.compile(r"[가-힣]")
+
+
+def _hangul_left(data: dict[str, Any]) -> list[str]:
+    """en·zh_TW 결과에 한글이 남은 필드 이름들."""
+    out = []
+    for lang in ("en", "zh_TW"):
+        for k, v in (data.get(lang) or {}).items():
+            txt = " ".join(v) if isinstance(v, list) else str(v or "")
+            if HANGUL.search(txt):
+                out.append(f"{lang}.{k}")
+    return out
+
+
+def translate(client, bundle: dict[str, Any], cfg: dict,
+              retried: bool = False, focus: Optional[list[str]] = None
+              ) -> Optional[dict[str, Any]]:
     """{ko: {...}, en: {...}, zh_TW: {...}}. 실패하면 None."""
     if not bundle:
         return None
@@ -104,6 +131,9 @@ def translate(client, bundle: dict[str, Any], cfg: dict) -> Optional[dict[str, A
     last: Exception | None = None
     prompt = ("아래 JSON 을 세 언어로 옮겨라. 키 이름과 리스트 길이는 그대로 두고 값만 옮긴다.\n\n"
               + json.dumps(bundle, ensure_ascii=False, indent=1))
+    if focus:
+        prompt += ("\n\n★ 지난번에 이 자리들에 한국어가 그대로 남았다. 이번엔 반드시 그 언어로 옮겨라:\n"
+                   + "\n".join(f"  - {f}" for f in focus))
     for model_name in _models(cfg):
         try:
             r = client.models.generate_content(
@@ -119,6 +149,12 @@ def translate(client, bundle: dict[str, Any], cfg: dict) -> Optional[dict[str, A
             data = json.loads(r.text) if r.text else None
             if not data:
                 continue
+            # 영어·번체중문 결과에 한글이 남아 있으면 옮기다 만 것이다. 한 번 더 부른다.
+            leftovers = _hangul_left(data)
+            if leftovers and not retried:
+                again = translate(client, bundle, cfg, retried=True, focus=leftovers)
+                if again:
+                    return again
             # 리스트 길이가 어긋나면 원문을 잃은 것이다 — 그건 쓰지 않는다
             for lang in LANGS:
                 got = data.get(lang) or {}

@@ -47,7 +47,15 @@ def display_bundle(d: dict, off) -> dict:
         "gate_evidence": e.evidence, "gate_action": e.action,
         "fit_why": fit_why,
         "pay_note": (pay.get("company_avg") or {}).get("basis"),
+        "company": d.get("company"),
     }
+    # 문의 메일도 읽을 수 있어야 한다. 보낼 때는 원문을 그대로 보낸다.
+    kit = d.get("_outreach") or {}
+    if kit:
+        src["mail_subject"] = kit.get("subject")
+        src["mail_body"] = kit.get("body")
+        src["mail_hooks"] = kit.get("hooks") or []
+        src["mail_asks"] = kit.get("ask_points") or []
     return i18n.bundle_of(src)
 
 

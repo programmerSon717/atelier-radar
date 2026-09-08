@@ -48,6 +48,18 @@ LABEL_ZH = {
 # 현대건설 일반 공채처럼 지원 가능한 자리를 "사실상 장벽" 으로 잘라낸다.
 LOCAL_TEST = re.compile(r"TOPIK|한국어\s*능력|한국어능력시험|JLPT|日本語能力|"
                         r"일본어\s*능력|한자능력", re.I)
+# "영어 능통자 우대/필수" 는 외국인을 받는다는 뜻이 아니다. 그냥 영어를 요구하는 것이다.
+# 실제로 반 시게루 인턴십을 "영어로 업무 가능 명시 → 지원 가능" 으로 내보냈는데,
+# 근거로 든 문장은 "Fluent in English (written and spoken)" — 지원 자격 요구였다.
+# 현지어가 필요 없다고 말한 경우에만 장벽이 없다고 본다.
+ENGLISH_ENOUGH = re.compile(
+    r"英語のみ|英語だけ|語学力は問いません|日本語(?:能力)?は?\s*(?:不問|問いません|不要)|"
+    r"한국어\s*(?:불문|무관|불필요)|국적\s*무관|"
+    r"不限語言|不限國籍|中文\s*不拘|"
+    r"english[- ]?only|no\s+japanese\s+(?:required|necessary)|"
+    r"japanese\s+(?:is\s+)?not\s+required|without\s+japanese|"
+    r"regardless\s+of\s+nationality|any\s+nationality", re.I)
+
 ENGLISH_TEST = re.compile(r"TOEIC|TOEFL|OPI[Cc]?|IELTS|TEPS|텝스|토익|토플|오픽", re.I)
 
 INTL_STUDENT = re.compile(r"유학생|留学生|외국인\s*유학|外国人留学", re.I)
@@ -87,7 +99,12 @@ def judge(posting, country: str) -> Eligibility:
     """공고 + 국가 → 지원 가능 여부."""
     # 대만은 후보자 국적이라 애초에 외국인 문제가 없다
     if country == "TW":
-        return Eligibility("open", "대만 국적 — 비자·언어 장벽 없음")
+        return Eligibility(
+            "open",
+            "대만 국적이라 국적·비자 요건 자체가 없다 (공고가 외국인 채용을 말한 것은 아님)",
+            None,
+            "국적 문제는 없다. 남은 건 자격 요건뿐이다",
+        )
 
     blob = _blob(posting)
 
@@ -172,10 +189,20 @@ def judge(posting, country: str) -> Eligibility:
                            posting.language_required,
                            "2027년까지 TOPIK 확보하면 열림")
 
-    # 영어만으로 가능하다고 적혀 있으면 사실상 열려 있다
+    # 영어만으로 가능하다고 **공고가 말한 경우에만** 열려 있다고 본다.
+    # 모델이 english_only_ok 를 켜도 근거 문장이 "영어 능통 필수" 면 그건 요구 조건이다.
     if posting.english_only_ok:
-        return Eligibility("open", "영어로 업무 가능 명시",
-                           posting.language_required, "바로 지원 가능")
+        ev = " ".join(filter(None, [posting.language_required, posting.foreigner_evidence, blob]))
+        m2 = ENGLISH_ENOUGH.search(ev)
+        if m2:
+            return Eligibility("open", "현지어 없이도 된다고 공고에 적혀 있음",
+                               posting.language_required or m2.group(0), "바로 지원 가능")
+        return Eligibility(
+            "ask",
+            "영어 관련 언급은 있으나 외국인 지원 가능 여부는 적혀 있지 않음",
+            posting.language_required,
+            "영어만으로 지원·근무가 되는지 담당자에게 확인할 것",
+        )
 
     # 여기까지 오면 공고에 아무 말이 없는 것 — 대다수가 여기 해당한다
     return Eligibility(

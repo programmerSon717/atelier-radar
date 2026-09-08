@@ -2,6 +2,8 @@
 // 공고 내용(JD)은 여기 없다. 그건 data.json 의 i18n 에 들어 있다 (tools/translate_postings.py).
 const UI = {
   ko: {
+    mail_original: "보낼 원문",
+    mail_send_note: "실제로 보낼 때는 이 원문을 그대로 보낸다. 받는 사무소의 언어로 쓰여 있다.",
     q_now_other: "그 외",
     q_soon_n: "2주 내 마감 {n}건",
     q_intern_n: "인턴·전환형 {n}건",
@@ -71,6 +73,8 @@ const UI = {
     none_soon: "2주 내 마감 없음",
   },
   en: {
+    mail_original: "Text to send",
+    mail_send_note: "Send this original as-is — it is written in the language of the office you are writing to.",
     q_now_other: "elsewhere",
     q_soon_n: "{n} closing within two weeks",
     q_intern_n: "{n} internships (incl. conversion track)",
@@ -140,6 +144,8 @@ const UI = {
     none_soon: "Nothing closing within two weeks",
   },
   zh_TW: {
+    mail_original: "寄出用原文",
+    mail_send_note: "實際寄信時請直接使用這份原文，它是以對方事務所的語言撰寫的。",
     q_now_other: "其他",
     q_soon_n: "兩週內截止 {n} 筆",
     q_intern_n: "實習·可轉正 {n} 筆",

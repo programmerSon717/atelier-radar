@@ -38,6 +38,13 @@ HAN_YEARS = re.compile(r"([一二三四五六七八九十兩两]{1,3})\s*(?:年|
 # 이걸 하한으로 읽으면 자격 있는 신입 공고를 숨겨버린다.
 EXP_CEILING = re.compile(r"以下|未満|以内|이하|미만|이내|or less|under|up to|less than|within", re.I)
 EXP_FLOOR = re.compile(r"以上|이상|\+|or more|at least|minimum|이상의", re.I)
+# 학교를 몇 년 다녔는지는 실무 경력이 아니다.
+# "Completed at least 2 years of architecture school" 을 경력 2년 요구로 읽고 있었다.
+SCHOOL_YEARS = re.compile(
+    r"years?\s+of\s+(?:architecture\s+)?(?:school|study|studies|education|program|"
+    r"university|college|coursework)|"
+    r"(?:architecture|design)\s+school|재학|학년|在学|在學|學程", re.I)
+
 NEW_GRAD_OK = re.compile(r"신입|新卒|新鮮人|未経験|應屆|no experience|entry[ -]?level|new grad|fresh grad", re.I)
 
 
@@ -131,6 +138,10 @@ def _experience_check(p: Posting, a: Assessment) -> None:
             return
     if NEW_GRAD_OK.search(req):
         a.met.append(f"신입 가능 — {req}")
+        return
+    if SCHOOL_YEARS.search(req):
+        # 학업 연차 조건이다. 인턴 공고에 흔하다 — 경력으로 세면 안 된다.
+        a.met.append(f"학업 연차 조건 — {req}")
         return
     m = EXP_YEARS.search(req)
     years = int(m.group(1)) if m else _han_years(req)
