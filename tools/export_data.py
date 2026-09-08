@@ -31,8 +31,9 @@ def _identity_known() -> bool:
 
 def _redact(v):
     if isinstance(v, str):
-        for env, mask in (("CANDIDATE_NAME", "(지원자 이름)"),
-                          ("CANDIDATE_SCHOOL", "(대학원)")):
+        # 화면에서 언어에 맞게 바꿔 끼우려고 중립 토큰으로 가린다 (app.js 가 치환한다)
+        for env, mask in (("CANDIDATE_NAME", "[NAME]"),
+                          ("CANDIDATE_SCHOOL", "[SCHOOL]")):
             real = os.environ.get(env)
             if real:
                 v = v.replace(real, mask)
@@ -115,7 +116,10 @@ def build() -> dict:
             # (워크플로에서 시크릿을 안 넘기면 여기서 통째로 빠진다)
             "outreach": _redact(d.get("_outreach")) if _identity_known() else None,
             # 세 언어 번역 (tools/translate_postings.py 가 넣는다). 해시는 내부용이라 뺀다.
-            "i18n": {k: v for k, v in (d.get("_i18n") or {}).items() if k != "hash"} or None,
+            # **번역본에도 이름·학교를 가린다.** 메일 초안이 통째로 옮겨져 있어서,
+            # 여기를 빼먹으면 원문만 가리고 번역본으로 실명이 새어 나간다 (실제로 그랬다).
+            "i18n": (_redact({k: v for k, v in (d.get("_i18n") or {}).items() if k != "hash"})
+                     if _identity_known() else None) or None,
             "grade": grade, "grade_why": grade_why, "pay": pay,
             "fit": fit_grade, "fit_why": fit_why,
             "gate_reason": e.reason, "gate_evidence": e.evidence, "gate_action": e.action,

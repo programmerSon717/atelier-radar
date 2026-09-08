@@ -1,7 +1,9 @@
 // data.json 을 읽어 화면을 그린다. HTML 에 데이터를 굽지 않으므로
 // 봇이 새 데이터를 올리면 페이지를 다시 만들지 않아도 갱신된다.
 const E = (s) => String(s ?? "").replace(/[&<>"]/g, c =>
-  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]))
+  // 이름·학교는 공개 사이트에 싣지 않는다. 자리만 남기고 화면 언어로 채운다.
+  .replace(/\[NAME\]/g, () => T("name_ph")).replace(/\[SCHOOL\]/g, () => T("school_ph"));
 
 // ── 언어 ─────────────────────────────────────────────
 // 화면 문구는 ui.js 의 UI, 공고 내용은 data.json 의 i18n 에서 온다.
@@ -229,8 +231,8 @@ function row(p) {
     p.pay ? `<div><h4>${T("pay")}</h4><p>${[
         p.pay.stated ? `${T("pay_stated")}: <b>${E(p.pay.stated)}</b>`
                      : (p.salary ? `${T("pay_stated")}: ${E(p.salary)} <span style="opacity:.6">${T("pay_noamt")}</span>` : ""),
-        p.pay.company_avg ? `<span class="rumor">${T("pay_ref")}</span> ${T("pay_avg")} <b>${E(p.pay.company_avg.average)}</b>` : "",
-        p.pay.company_avg ? `<span style="opacity:.6">${E(F(p, "pay_note") || p.pay.company_avg.basis)} · ${T("pay_src")}: ${E(p.pay.company_avg.source)}</span>` : "",
+        p.pay.company_avg ? `<span class="rumor">${T("pay_ref")}</span> ${T("pay_avg")} <b>${E(payValue(p.pay.company_avg.average, p.country))}</b>` : "",
+        p.pay.company_avg ? `<span style="opacity:.6">${E(F(p, "pay_note") || p.pay.company_avg.basis)} · ${T("pay_src")}: ${E(sourceName(p.pay.company_avg.source))}</span>` : "",
         (!p.pay.stated && !p.salary && !p.pay.company_avg) ? `<span style="opacity:.6">${T("pay_none")}</span>` : "",
       ].filter(Boolean).join("<br>")}</p></div>` : "",
     bullets(F(p, "blockers_desc"), T("blockers")),
@@ -265,6 +267,28 @@ const FIT = {
   neutral:   { k: "fit_neutral",   i: "\u2796",    c: "#8a8a8a" },
   avoid:     { k: "fit_avoid",     i: "\u{1F44E}", c: "#a3452f" },
 };
+
+// 연봉은 나라마다 단위가 다르다. "8,460만원" 을 영어 화면에 그대로 두면 읽을 수 없다.
+function payValue(v, country) {
+  const raw = String(v ?? "");
+  if (LANG === "ko") return raw;
+  let m = /^([\d,]+)\s*만원$/.exec(raw);
+  if (m) {
+    const won = parseInt(m[1].replace(/,/g, ""), 10) * 10000;
+    return LANG === "en" ? "KRW " + won.toLocaleString("en-US") : m[1] + "萬韓元";
+  }
+  m = /^([\d,]+)\s*万円$/.exec(raw);
+  if (m) return LANG === "en" ? "JPY " + (parseInt(m[1].replace(/,/g, ""), 10) * 10000).toLocaleString("en-US")
+                              : m[1] + "萬日圓";
+  return raw;
+}
+
+// 출처 이름도 그 언어 표기로
+const SOURCE_KEY = { "사람인 기업정보": "src_saramin" };
+function sourceName(v) {
+  const k = SOURCE_KEY[v];
+  return k ? T(k) : v;
+}
 
 function fitChip(p) {
   const f = FIT[p.fit];
