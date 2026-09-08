@@ -99,6 +99,7 @@ def translate(client, bundle: dict[str, Any], cfg: dict) -> Optional[dict[str, A
 
     from .extract import _models
 
+    last: Exception | None = None
     prompt = ("아래 JSON 을 세 언어로 옮겨라. 키 이름과 리스트 길이는 그대로 두고 값만 옮긴다.\n\n"
               + json.dumps(bundle, ensure_ascii=False, indent=1))
     for model_name in _models(cfg):
@@ -123,6 +124,9 @@ def translate(client, bundle: dict[str, Any], cfg: dict) -> Optional[dict[str, A
                     if f in bundle and len(got.get(f) or []) != len(bundle[f]):
                         got[f] = bundle[f]
             return {lang: data.get(lang) or {} for lang in LANGS}
-        except Exception:
+        except Exception as e:
+            last = e
             continue
+    import sys
+    print(f"    번역 실패: {type(last).__name__}: {str(last)[:120]}", file=sys.stderr)
     return None
