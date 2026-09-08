@@ -87,9 +87,14 @@ def main() -> int:
         bundle = display_bundle(d, off)
         h = i18n.source_hash(bundle)
         cur = d.get("_i18n") or {}
-        if not args.all and cur.get("hash") == h:
+        # 내용이 그대로여도 **옮기다 만 자리가 남아 있으면** 다시 한다. 안 그러면
+        # 해시가 같다는 이유로 영영 건너뛰고, 그 조각은 화면에 원문으로 남는다.
+        left = i18n._hangul_left(cur) if cur else []
+        if not args.all and cur.get("hash") == h and not left:
             skipped += 1
             continue
+        if left:
+            print(f"  ↻ 남은 자리 {len(left)}개 다시: {d.get('title','')[:32]}")
 
         out = i18n.translate(client, bundle, cfg)
         if not out:
