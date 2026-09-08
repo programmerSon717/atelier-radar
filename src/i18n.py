@@ -99,9 +99,14 @@ SYSTEM = """\
 """
 
 
+# 프롬프트·용어표를 고치면 이미 옮겨 둔 것도 다시 옮겨야 한다. 안 그러면 해시가 같아서
+# "안 바뀐 것" 으로 보고 건너뛰고, 옛 번역이 화면에 그대로 남는다. 실제로 그랬다.
+PROMPT_VERSION = 3
+
+
 def source_hash(bundle: dict[str, Any]) -> str:
     return hashlib.sha256(
-        json.dumps(bundle, ensure_ascii=False, sort_keys=True).encode()
+        json.dumps({"v": PROMPT_VERSION, "b": bundle}, ensure_ascii=False, sort_keys=True).encode()
     ).hexdigest()[:16]
 
 
