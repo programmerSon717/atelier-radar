@@ -93,6 +93,10 @@ SYSTEM = """\
    **공고에서 따온 인용문도 옮긴다.** "신입 가능 — 正社員としての就業経験のない方" 처럼
    대시 뒤에 원문을 붙여 둔 자리가 많은데, 그 뒷부분까지 전부 옮겨야 한다.
    회사명·프로젝트명만 예외다.
+   gate_evidence 는 "이렇게 적혀 있어서 그렇게 판정했다" 는 근거다. 옮긴 문장을 먼저
+   쓰고, **원문을 괄호 안에 그대로 덧붙인다** — 근거는 원문이 남아야 확인할 수 있다.
+   예: Language ability is not required if you can communicate openly
+       (원문: オープンマインドでコミュニケーションできる方であれば語学力は問いません)
 7. 아래 용어표는 그대로 따른다.
 
 {glossary}
@@ -101,7 +105,7 @@ SYSTEM = """\
 
 # 프롬프트·용어표를 고치면 이미 옮겨 둔 것도 다시 옮겨야 한다. 안 그러면 해시가 같아서
 # "안 바뀐 것" 으로 보고 건너뛰고, 옛 번역이 화면에 그대로 남는다. 실제로 그랬다.
-PROMPT_VERSION = 4
+PROMPT_VERSION = 5
 
 
 def source_hash(bundle: dict[str, Any]) -> str:
@@ -139,7 +143,8 @@ HANGUL = re.compile(r"[가-힣]")
 # 가운뎃점(・U+30FB)은 중국어 표기에도 쓴다 — 잔존으로 보면 오탐이다
 KANA = re.compile(r"[\u3040-\u309F\u30A0-\u30FA\u30FC-\u30FF]")   # ひらがな·カタカナ
 # 회사명·작품명은 원문을 그대로 두는 게 맞다. 검사에서 뺀다.
-KEEP_ORIGINAL = {"company", "firm_projects"}
+# gate_evidence 는 번역 뒤에 원문을 일부러 병기한다 — 잔존이 아니다
+KEEP_ORIGINAL = {"company", "firm_projects", "gate_evidence"}
 
 
 def _hangul_left(data: dict[str, Any]) -> list[str]:
