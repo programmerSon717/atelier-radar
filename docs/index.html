@@ -92,8 +92,16 @@ input[type=search]:focus-visible{outline:2px solid var(--redline);outline-offset
 .rtop{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
 .rtitle{font-weight:600;font-size:15px;letter-spacing:-.005em}
 .rfirm{color:var(--graphite);font-size:13px}
+.open{margin:26px 0 0}
+.openlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px;margin-top:10px}
+.ocard{border:1px solid var(--hair);border-radius:3px;padding:10px 12px;background:var(--sheet)}
+.ocard b{font-size:13px}
+.ocard .t{font-family:var(--f-mono);font-size:10px;opacity:.6;margin-left:6px}
+.ocard p{margin:4px 0 0;font-size:12px;opacity:.72;line-height:1.5}
+.ocard a{font-size:12px;margin-right:10px}
+.ocard .mail{font-family:var(--f-mono)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
-  background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:3px;font-size:13px;
+  background:var(--ink);color:var(--paper);padding:9px 16px;border-radius:3px;font-size:13px;
   opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:50}
 #toast.on{opacity:.94;transform:translateX(-50%) translateY(0)}
 .fitchip{font-family:var(--f-mono);font-size:11px;padding:2px 7px;border:1px solid var(--fc);
@@ -195,6 +203,13 @@ footer{margin-top:30px;padding-top:14px;border-top:1px solid var(--hair);
   </div>
 
   <div class="rows" id="rows"></div>
+
+  <section class="open" id="open-sec">
+    <span class="mark" id="open-h">공고 없음 — 상시 지원할 곳</span>
+    <p class="note">채용 공고를 따로 내지 않는 사무소다. 한국 아틀리에는 대부분 이렇게 뽑는다 —
+      공고를 기다리지 말고 포트폴리오를 보내는 자리다.</p>
+    <div class="openlist" id="openlist"></div>
+  </section>
 
   <section class="gap">
     <span class="mark" id="gap-h">아직 추적하지 못하는 사무소</span>

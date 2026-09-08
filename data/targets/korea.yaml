@@ -47,6 +47,7 @@ offices:
     eng_ok: unlikely
     verified: false
   - id: kr-kunwon
+    site: "https://kunwon.com"
     name: { ko: "종합건축사사무소 건원", en: "Kunwon Architects" }
     city: 서울
     tier: large
@@ -95,6 +96,7 @@ offices:
     hiring_types: [new_grad, year_round]
     verified: false
   - id: kr-unsangdong
+    site: "https://usdspace.com"
     name: { ko: "운생동건축사사무소", en: "Unsangdong Architects" }
     city: 서울
     tier: atelier
@@ -234,6 +236,7 @@ offices:
   # ── 추가 아틀리에 (사용자 지시: "101·켄고쿠마 급을 가져와라") ──
   # 채용 URL 이 없어도 목록에 있으면 잡보드 공고를 이름으로 알아본다 (targets.match_office).
   - id: kr-iroje
+    site: "https://iroje.com"
     name: { ko: "이로재", en: "IROJE architects & planners" }
     city: 서울
     tier: atelier
@@ -242,6 +245,9 @@ offices:
     eng_ok: likely
     verified: false
   - id: kr-bcho
+    site: "http://bchoarchitects.com"
+    apply_email: "bc@bchoarchitects.com"
+    open_application: true   # 공고를 따로 내지 않고 상시로 포트폴리오를 받는다
     name: { ko: "조병수건축연구소", en: "BCHO Partners" }
     city: 서울
     tier: atelier
@@ -250,6 +256,7 @@ offices:
     eng_ok: likely
     verified: false
   - id: kr-systemlab
+    site: "https://www.systemlab.kr"
     name: { ko: "시스템랩", en: "System Lab" }
     city: 서울
     tier: atelier
@@ -258,6 +265,9 @@ offices:
     eng_ok: likely
     verified: false
   - id: kr-soa
+    site: "http://societyofarchitecture.com"
+    apply_email: "soa@soaaos.com"
+    open_application: true   # 공고를 따로 내지 않고 상시로 포트폴리오를 받는다
     name: { ko: "에스오에이", en: "SoA (Society of Architecture)" }
     city: 서울
     tier: atelier
@@ -266,6 +276,9 @@ offices:
     eng_ok: likely
     verified: false
   - id: kr-obba
+    site: "https://o-bba.com"
+    apply_email: "mailtoobba@gmail.com"
+    open_application: true   # 공고를 따로 내지 않고 상시로 포트폴리오를 받는다
     name: { ko: "오비비에이", en: "OBBA" }
     city: 서울
     tier: atelier
@@ -274,6 +287,7 @@ offices:
     eng_ok: likely
     verified: false
   - id: kr-joho
+    site: "http://www.johoarchitecture.com"
     name: { ko: "조호건축", en: "JOHO Architecture" }
     city: 서울
     tier: atelier
@@ -282,6 +296,9 @@ offices:
     eng_ok: likely
     verified: false
   - id: kr-oca
+    site: "https://www.oca-a.com"
+    apply_email: "jimukyoku@oca-a.com"
+    open_application: true   # 공고를 따로 내지 않고 상시로 포트폴리오를 받는다
     name: { ko: "오씨에이건축", en: "OCA Architects" }
     city: 서울
     tier: atelier
@@ -290,6 +307,9 @@ offices:
     eng_ok: likely
     verified: false
   - id: kr-archium
+    site: "https://www.archium.co.kr"
+    apply_email: "archium1986@naver.com"
+    open_application: true   # 공고를 따로 내지 않고 상시로 포트폴리오를 받는다
     name: { ko: "아르키움", en: "ARCHIUM" }
     city: 서울
     tier: atelier
@@ -298,6 +318,9 @@ offices:
     eng_ok: unknown
     verified: false
   - id: kr-gaa
+    site: "http://gaa.co.kr"
+    apply_email: "jchrich8869@gmail.com"
+    open_application: true   # 공고를 따로 내지 않고 상시로 포트폴리오를 받는다
     name: { ko: "가아건축사사무소", en: "GAA Architects" }
     city: 서울
     tier: atelier
@@ -306,6 +329,9 @@ offices:
     eng_ok: unknown
     verified: false
   - id: kr-hyunjoonyoo
+    site: "https://hyunjoonyoo.com"
+    apply_email: "yoo@hyunjoonyoo.com"
+    open_application: true   # 공고를 따로 내지 않고 상시로 포트폴리오를 받는다
     name: { ko: "유현준건축사사무소", en: "Hyunjoon Yoo Architects" }
     city: 서울
     tier: atelier

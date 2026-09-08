@@ -296,8 +296,23 @@ def special_track(posting) -> str | None:
     return m.group(0) if m else None
 
 
+# 걸러야 할 건 규모가 아니라 업종이다.
+# 사용자 정정: "개좆소라는 건 건설직 노가다꾼들이 거치는 데를 말하는 거야.
+#              소규모 5명도 안 되는 건축사무소도 괜찮으니까 띄워봐."
+# 5인 사무소도 설계를 하면 설계 경력이 쌓인다. 시공·현장·인허가 대행은 그렇지 않다.
+CONSTRUCTION_FIRM = re.compile(
+    r"종합\s*건설|건설\s*\(주\)|건설㈜|\(주\)\s*[가-힣A-Za-z]*건설|건설산업|"
+    r"토목\s*시공|전문\s*건설|철거|비계|타설|골조|"
+    r"인허가\s*대행|허가\s*방|도면\s*대행|"
+    r"建設株式会社|工務店|"
+    r"營造(?:廠|股份)|土木包工|"
+    r"general\s*contractor|construction\s*co", re.I)
+
+
 def worth_applying(posting, office) -> tuple[bool, str]:
-    """이 공고를 내보낼 가치가 있는가. (보낼까, 이유)"""
+    """이 공고를 내보낼 가치가 있는가. (보낼까, 이유)
+
+    작은 사무소라고 자르지 않는다. 자르는 건 설계를 하지 않는 곳이다."""
     if office is not None and office.tier in VERIFIED_TIERS:
         return True, f"추적 대상 사무소 ({office.tier})"
 
@@ -306,12 +321,21 @@ def worth_applying(posting, office) -> tuple[bool, str]:
     if known is not None:
         return True, f"추적 목록의 {known.display_name}"
 
+    who = " ".join(filter(None, [posting.company, posting.title]))
+    m = CONSTRUCTION_FIRM.search(who)
+    if m:
+        return False, f"설계사무소가 아니라 시공·건설 쪽 — {m.group(0).strip()}"
+
     blob = " ".join(filter(None, [
         posting.title, posting.company,
         *(posting.responsibilities or []), *(posting.qualifications or []),
         *(posting.preferred or []),
     ]))
+    if LOW_SIGNAL.search(blob):
+        return False, "설계 실무와 거리가 있음 (대행·단기 알바)"
+
     m = STRONG_SIGNAL.search(blob)
     if m:
         return True, f"설계로 이름났다는 근거 — {m.group(0).strip()}"
-    return False, "이름 모를 사무소이고, 설계 역량을 확인할 근거가 공고에 없음"
+    # 이름을 몰라도 설계 공고면 내보낸다. 규모는 판단 근거가 아니다.
+    return True, "소규모 설계사무소 (규모는 작지만 설계 자리)"

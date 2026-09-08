@@ -153,7 +153,45 @@ def build() -> dict:
         except sqlite3.OperationalError:
             pass   # 아직 아카이브를 한 번도 안 돌렸다
 
+    # ── 공고가 없는 사무소 ──────────────────────────────
+    # 한국 아틀리에는 공고를 거의 내지 않는다. 상시로 포트폴리오를 받아 뽑는다.
+    # 유현준건축사사무소는 자사 사이트가 아예 월간 SPACE 공고로 링크되어 있었다.
+    # 공고를 기다리기만 하면 한국은 계속 비어 있다 — 그래서 따로 세운다.
+    def _n(x: str) -> str:
+        return "".join((x or "").split()).lower()
+
+    posted_ids = {p.get("office_id") for p in posts}
+    posted_names = {_n(p.get("company")) for p in posts if p.get("company")}
+
+    open_apply = []
+    for o in offs:
+        if o.tier == "job_board" or o.id in posted_ids:
+            continue
+        names = [v for v in (o.name or {}).values()]
+        if any(_n(v) and any(_n(v) in pn or pn in _n(v) for pn in posted_names) for v in names):
+            continue
+        h = hashes.get(o.id)
+        if not o.careers_url:
+            why = "채용 페이지 주소를 아직 못 찾았다"
+        elif h and h[1]:
+            why = "채용 페이지는 보고 있는데 지금 올라온 공고가 없다"
+        else:
+            why = "채용 페이지를 읽지 못했다 (자바스크립트 등)"
+        open_apply.append({
+            "id": o.id, "country": o.country, "tier": o.tier,
+            "name": o.display_name,
+            "name_local": (o.name.get("ko") or o.name.get("ja") or o.name.get("zh")
+                           or o.display_name),
+            "city": o.city, "note": o.note,
+            "site": o.raw.get("site"), "email": o.raw.get("apply_email"),
+            "open_application": bool(o.raw.get("open_application")),
+            "careers_url": o.careers_url, "why": why,
+        })
+    order = {"atelier": 0, "large": 1, "mid": 2, "global": 3}
+    open_apply.sort(key=lambda x: (x["country"], order.get(x["tier"], 9), x["name"]))
+
     return {
+        "open_apply": open_apply,
         "archive": archive,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "offices": offices,
@@ -169,4 +207,4 @@ if __name__ == "__main__":
     g = {}
     for p in d["postings"]:
         g[p["gate"]] = g.get(p["gate"], 0) + 1
-    print(f"data.json  공고 {len(d['postings'])}건  사무소 {len(d['offices'])}곳  게이트 {g}")
+    print(f"data.json  공고 {len(d['postings'])}건  상시지원 {len(d['open_apply'])}곳  사무소 {len(d['offices'])}곳  게이트 {g}")

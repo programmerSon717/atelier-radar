@@ -35,6 +35,7 @@ function daysLeft(d, country) {
 }
 
 function render() {
+  paintOpenApply();      // 나라 필터가 바뀌면 이 목록도 같이 따라간다
   const P = DATA.postings;
   const gc = Object.fromEntries(GATES.map(g => [g.k, P.filter(p => p.gate === g.k).length]));
 
@@ -294,6 +295,32 @@ async function fetchData() {
   const r = await fetch("data.json?t=" + Date.now(), { cache: "no-store" });
   if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
+}
+
+const TIER_LABEL = { atelier: "아틀리에", large: "대형", mid: "중견", global: "글로벌" };
+
+// 공고를 내지 않는 사무소. 한국 아틀리에는 대부분 여기 속한다 —
+// 공고를 기다리는 게 아니라 포트폴리오를 보내는 자리다.
+function paintOpenApply() {
+  const box = document.getElementById("openlist");
+  if (!box) return;
+  const list = (DATA.open_apply || []).filter(o =>
+    state.country === "all" || o.country === state.country);
+  document.getElementById("open-sec").hidden = list.length === 0;
+  document.getElementById("open-h").textContent =
+    `공고 없음 — 상시 지원할 곳 (${list.length}곳)`;
+  box.innerHTML = list.map(o => {
+    const links = [];
+    if (o.email) links.push(`<a class="mail" href="mailto:${E(o.email)}">${E(o.email)}</a>`);
+    if (o.site) links.push(`<a href="${E(o.site)}" target="_blank" rel="noopener">사무소 사이트 →</a>`);
+    if (o.careers_url) links.push(`<a href="${E(o.careers_url)}" target="_blank" rel="noopener">채용 페이지 →</a>`);
+    return `<div class="ocard">
+      <b>${E(o.name_local)}</b><span class="t">${E(TIER_LABEL[o.tier] || o.tier || "")}${o.city ? " · " + E(o.city) : ""}</span>
+      ${o.note ? `<p>${E(o.note)}</p>` : ""}
+      <p>${E(o.why)}${o.open_application ? " · <b>상시 포트폴리오 접수</b>" : ""}</p>
+      ${links.length ? `<p>${links.join("")}</p>` : ""}
+    </div>`;
+  }).join("");
 }
 
 function paintMeta() {
