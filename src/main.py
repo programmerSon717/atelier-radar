@@ -14,7 +14,7 @@ from datetime import date
 from dotenv import load_dotenv
 
 from . import notify, outreach, store
-from . import eligibility, relevance, salary, verified
+from . import eligibility, i18n, relevance, salary, verified
 from .match import assess, is_new_grad_ok
 from .scope import country_of, in_scope
 from .render import load_locale, render_posting, render_summary
@@ -57,7 +57,10 @@ async def pick_targets(
 
 async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
     cfg = load_config()
-    L = load_locale(cfg.get("locale", "ko"))
+    # 봇은 사이트 locale 과 별개다. 읽는 사람이 대만 사람이라 번체중문으로 보낸다.
+    tg_lang = (cfg.get("telegram") or {}).get("locale", "zh_TW")
+    L = load_locale(tg_lang)
+    part_fmt = (L.get("bot") or {}).get("part")
     offices = load_offices()
     by_id = {o.id: o for o in offices}
 
@@ -75,13 +78,15 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
     reports = await extract_many(pages, cfg)
     page_text = {o.id: (u, t) for o, u, t in pages}
 
+    # 번역에도 이 클라이언트를 쓴다 — 메일 초안을 꺼도 번역은 되어야 한다.
+    # (예전에는 outreach.enabled 에 묶여 있어서, 끄면 텔레그램이 원문으로 나갔다)
     gclient = None
-    if cfg.get("outreach", {}).get("enabled", True):
-        try:
-            from .extract import _client
-            gclient = _client()
-        except Exception as e:
-            errors.append(f"메일 초안 생성 비활성: {e}")
+    try:
+        from .extract import _client
+        gclient = _client()
+    except Exception as e:
+        errors.append(f"Gemini 클라이언트 없음 — 번역·메일 초안 비활성: {e}")
+    draft_mail = bool(gclient) and cfg.get("outreach", {}).get("enabled", True)
 
     conn = store.connect()
     now = now_iso()
@@ -150,23 +155,37 @@ async def run(sweep: bool, only: list[str] | None, dry_run: bool) -> int:
 
             # 문의가 필요한 건에만 메일 초안을 만든다 (호출 아끼기)
             kit = None
-            if gclient and elig.gate in ("ask", "domestic"):
+            if draft_mail and elig.gate in ("ask", "domestic"):
                 kit = await asyncio.to_thread(
                     outreach.draft, gclient, p, p.company or office.display_name,
                     pc, a.unknowns, cfg)
 
             fit = relevance.fit_grade(p, office, a)
-            text = render_posting(p, office, a, L, elig, kit, pay, fit)
+
+            # ── 보내기 전에 옮긴다 ──────────────────────────
+            # 예전에는 번역이 발송 뒤(tools/translate_postings.py)에만 돌아서,
+            # 텔레그램에는 한국어·일본어 원문이 그대로 나갔다. 사이트만 옮겨져 있었다.
+            # 여기서 옮겨 두면 저장분에도 들어가므로 나중에 또 부르지 않는다.
+            bundle = i18n.bundle_of(i18n.display_source(p, a, elig, fit[1], pay, kit))
+            packs = None
+            if gclient and bundle:
+                packs = await asyncio.to_thread(i18n.translate, gclient, bundle, cfg)
+            tr = (packs or {}).get(tg_lang)
+            stored_i18n = {"hash": i18n.source_hash(bundle), **packs} if packs else None
+
+            text = render_posting(p, office, a, L, elig, kit, pay, fit,
+                                  tr=tr, lang=tg_lang, country=pc)
             if dry_run:
                 print("\n" + "─" * 60 + "\n" + text)
             else:
-                delivered, failed = await notify.send_ok(text, country=pc)
+                delivered, failed = await notify.send_ok(text, country=pc, gate=elig.gate,
+                                                         part_fmt=part_fmt)
                 if failed:
                     errors.extend(failed)
                     office_ok = False
                 if not delivered:
                     continue  # 아무 데도 못 갔을 때만 미발송으로 남긴다
-            store.mark_sent(conn, key, p, now, kit)
+            store.mark_sent(conn, key, p, now, kit, stored_i18n)
             sent += 1
         # 추출과 발송이 다 끝난 뒤에야 "이 페이지는 봤다" 고 기록한다
         if office_ok and not dry_run and office_id in page_text:

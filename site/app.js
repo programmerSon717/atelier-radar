@@ -209,7 +209,7 @@ function row(p) {
     // 고용형태가 트랙과 같은 말이면 두 번 쓰지 않는다 ("인턴 · 인턴")
     p.employment_type && !new RegExp(trackLabel(p.track) || "\u0000").test(F(p, "employment_type"))
       && !/^(intern(ship)?|인턴)$/i.test(p.employment_type.trim()) ? E(F(p, "employment_type")) : "",
-    p.deadline ? `<span class="${dl !== null && dl <= 14 ? "due" : ""}">${p.expired ? T("expired") : T("deadline")} ${E(p.deadline)}${dl !== null && dl >= 0 && dl <= 30 ? ` (D-${dl})` : ""}</span>` : "",
+    p.deadline ? `<span class="${dl !== null && dl <= 14 ? "due" : ""}">${p.expired ? T("expired") : T("deadline")} ${E(F(p, "deadline_text") || p.deadline)}${dl !== null && dl >= 0 && dl <= 30 ? ` (D-${dl})` : ""}</span>` : "",
   ].filter(Boolean);
 
   const facts = [[T("cond_employ"), F(p, "employment_type")],
@@ -220,7 +220,7 @@ function row(p) {
     bullets(F(p, "responsibilities"), T("resp")),
     bullets(F(p, "qualifications"), T("qual")),
     bullets(F(p, "preferred"), T("pref")),
-    p.software?.length ? `<div><h4>${T("soft")}</h4><p>${E(p.software.join(" · "))}</p></div>` : "",
+    p.software?.length ? `<div><h4>${T("soft")}</h4><p>${E((F(p, "software") || p.software).join(" · "))}</p></div>` : "",
     facts.length ? `<div><h4>${T("cond")}</h4><p>${facts.join("<br>")}</p></div>` : "",
     F(p, "notes") ? `<div><h4>${T("unknown_h")}</h4><p>${E(F(p, "notes"))}</p></div>` : "",
     (p.contact_email || p.contact_phone || p.apply_how)
@@ -230,8 +230,8 @@ function row(p) {
           F(p, "apply_how") ? E(F(p, "apply_how")) : ""].filter(Boolean).join("<br>")}</p></div>` : "",
     bullets(F(p, "firm_projects"), T("projects")),
     p.pay ? `<div><h4>${T("pay")}</h4><p>${[
-        p.pay.stated ? `${T("pay_stated")}: <b>${E(p.pay.stated)}</b>`
-                     : (p.salary ? `${T("pay_stated")}: ${E(p.salary)} <span style="opacity:.6">${T("pay_noamt")}</span>` : ""),
+        p.pay.stated ? `${T("pay_stated")}: <b>${E(F(p, "pay_stated") || p.pay.stated)}</b>`
+                     : (p.salary ? `${T("pay_stated")}: ${E(F(p, "salary") || p.salary)} <span style="opacity:.6">${T("pay_noamt")}</span>` : ""),
         p.pay.company_avg ? `<span class="rumor">${T("pay_ref")}</span> ${T("pay_avg")} <b>${E(payValue(p.pay.company_avg.average, p.country))}</b>` : "",
         p.pay.company_avg ? `<span style="opacity:.6">${E(F(p, "pay_note") || p.pay.company_avg.basis)} · ${T("pay_src")}: ${E(sourceName(p.pay.company_avg.source))}</span>` : "",
         (!p.pay.stated && !p.salary && !p.pay.company_avg) ? `<span style="opacity:.6">${T("pay_none")}</span>` : "",

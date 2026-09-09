@@ -112,13 +112,16 @@ def already_sent(conn, key: str) -> bool:
     ).fetchone() is not None
 
 
-def mark_sent(conn, key: str, posting, now: str, outreach=None) -> None:
+def mark_sent(conn, key: str, posting, now: str, outreach=None, i18n=None) -> None:
+    # 번역본(_i18n)도 여기서 같이 넣는다. 발송할 때 이미 옮겨 뒀으므로,
+    # 나중에 tools/translate_postings.py 가 같은 공고를 또 부르지 않는다.
     conn.execute(
         "INSERT OR IGNORE INTO sent_posting "
         "(key, office_id, title, source_url, sent_at, payload) VALUES (?,?,?,?,?,?)",
         (key, posting.office_id, posting.title, posting.source_url, now,
          json.dumps({**posting.model_dump(),
-                     "_outreach": outreach.model_dump() if outreach else None},
+                     "_outreach": outreach.model_dump() if outreach else None,
+                     "_i18n": i18n},
                     ensure_ascii=False)),
     )
     conn.commit()

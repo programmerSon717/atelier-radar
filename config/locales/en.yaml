@@ -1,0 +1,116 @@
+# 영문 화면 문구. 봇은 쓰지 않는다 (봇은 번체중문으로만 보낸다).
+# web: 아래는 site/ui.js 로 생성된다 — **ui.js 를 직접 고치지 마라.**
+run_summary: Checked {checked} offices · {new} new
+no_new: No new postings
+web:
+  name_ph: (your name)
+  school_ph: (your graduate school)
+  src_saramin: Saramin company data
+  mail_original: ▸ Show the text to send (in the office’s language)
+  mail_send_note: Send this original as-is — it is written in the language of the office you are writing to.
+  q_now_other: elsewhere
+  q_soon_n: '{n} closing within two weeks'
+  q_intern_n: '{n} internships (incl. conversion track)'
+  cond_employ: Employment
+  cond_process: Process
+  cond_lang: Language
+  contact_h: Contact · How to apply
+  mail_subject: Subject
+  mail_body: Body
+  archive_h: Archived
+  lang_label: Language
+  lang_name: English
+  tagline: Entry-level and internship openings at architecture offices in Japan, Korea and Taiwan
+  k_off: Offices tracked
+  k_post: Openings found
+  k_time: Last updated
+  profile_h: Candidate
+  profile_1: Taiwanese citizen · no full-time experience · no Japanese
+  profile_2: M.Arch candidate · graduating May 2027
+  guide_h: Where to start
+  guide_sub: by situation
+  g_open: Open to apply
+  g_ask: Needs confirmation
+  g_native: Language barrier
+  g_domestic: Domestic-student track
+  g_closed: Not open
+  g_open_d: The posting says foreign applicants are welcome, or it is in Taiwan where citizenship is not an issue
+  g_ask_d: The posting says nothing about hiring foreigners. Ask the recruiter before applying
+  g_native_d: A local-language test score (TOPIK, JLPT) or fluency is listed as required
+  g_domestic_d: They do hire foreigners, but only students from Korean or Japanese universities. A US graduate does not qualify
+  g_closed_d: The posting states that foreign applicants or visa sponsorship are not accepted
+  q_now: Show me what I can apply to right now
+  q_soon: Anything closing soon?
+  q_intern: I would rather start with an internship
+  q_korean: Can I apply in Korea without Korean?
+  q_domestic: Why don't the Korean corporate foreigner tracks work for me?
+  a_korean: Most Korean postings simply <b>say nothing</b> about hiring foreigners. That is unconfirmed, not a refusal — the <b>{n} openings marked "needs confirmation"</b> can be settled with one email
+  a_domestic: Those tracks are aimed at <b>international students at Korean universities</b> and ask for a TOPIK level. A US graduate does not qualify, so they are separated out as <b>{n} domestic-student openings</b>
+  all: All
+  kr: 🇰🇷 Korea
+  jp: 🇯🇵 Japan
+  tw: 🇹🇼 Taiwan
+  live: Open
+  past: Closed
+  search_ph: Search office or role
+  clear: ✕ Clear filters
+  count: '{n} shown'
+  empty: Nothing matches these filters. Try widening them.
+  empty_past: No closed postings yet. They collect here once deadlines pass.
+  load_fail: Could not load the data. Try refreshing in a moment.
+  resp: Responsibilities
+  qual: Requirements
+  pref: Preferred
+  soft: Software
+  cond: Terms
+  unknown_h: Not stated
+  projects: Projects by this office
+  pay: Pay
+  pay_stated: Stated in posting
+  pay_none: No figure in the posting
+  pay_noamt: (no figure)
+  pay_ref: Reference
+  pay_avg: Company-wide average
+  pay_src: Source
+  blockers: What blocks this
+  softb: What preparation can clear
+  met: What already fits
+  unknowns: What needs checking
+  mail_h: Draft enquiry email
+  mail_copy: Copy body
+  mail_copied: Copied ✓
+  mail_failed: Copy failed — select it manually
+  hooks: Points of connection
+  asks: Questions to ask
+  source: Original posting →
+  site_link: Office website →
+  careers_link: Careers page →
+  thin: The source page carries no detail for this posting. Check the original.
+  archive_note: Archived summary of a closed posting (no detail)
+  open_h: No posting — offices open to direct applications ({n})
+  open_note: These offices do not post openings. Most Korean ateliers hire this way — you send a portfolio rather than wait for a listing.
+  open_always: Accepts portfolios year-round
+  gap_h: Offices not yet tracked — {n}
+  gap_note: Either the careers URL is unknown, or the page is rendered in JavaScript and cannot be read. While an office sits here, its postings will be missed.
+  foot_1: Every field comes from the original posting — nothing is inferred
+  foot_2: Anything unconfirmed is left blank rather than guessed
+  deadline: Closes
+  posted: Posted
+  expired: Closed
+  today_due: Closes today
+  due_in: '{n} days left'
+  fit_recommend: Recommended
+  fit_neutral: Neutral
+  fit_avoid: Not recommended
+  tier_atelier: Atelier
+  tier_large: Large firm
+  tier_mid: Mid-size
+  tier_global: Global
+  tier_other: Other
+  track_new_grad: New graduate
+  track_intern: Internship
+  track_intern_ft: Internship to full-time
+  track_year_round: Year-round
+  toast_new: '{n} new openings came in'
+  toast_upd: The list was updated
+  none_soon: Nothing closing within two weeks

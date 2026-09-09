@@ -8,6 +8,7 @@ import os
 import re
 import sqlite3
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -53,30 +54,43 @@ def _redact(v):
     return v
 
 
-def build() -> dict:
+@dataclass
+class Row:
+    """사이트에 실리는 공고 한 건 — 원본 payload 와 우리가 매긴 판정을 함께 들고 있다."""
+    payload: dict
+    posting: Posting
+    office: object
+    country: str
+    assess: object
+    elig: object
+    fit: tuple
+    pay: dict
+    grade: str
+    grade_why: str
+    sent_at: str = ""
+
+
+def _load_rows():
     offs = load_offices()
     by = {o.id: o for o in offs}
     db = ROOT / "store" / "radar.sqlite"
-    sent, hashes = [], {}
+    sent, hashes, conn = [], {}, None
     if db.exists():
-        c = sqlite3.connect(db)
+        conn = sqlite3.connect(db)
         sent = [(json.loads(p), t) for p, t in
-                c.execute("SELECT payload, sent_at FROM sent_posting")]
-        hashes = {r[0]: r for r in c.execute("SELECT office_id,hash,checked_at FROM page_hash")}
+                conn.execute("SELECT payload, sent_at FROM sent_posting")]
+        hashes = {r[0]: r for r in conn.execute("SELECT office_id,hash,checked_at FROM page_hash")}
+    return offs, by, sent, hashes, conn
 
-    offices = []
-    for o in offs:
-        h = hashes.get(o.id)
-        offices.append({
-            "id": o.id, "country": o.country, "name": o.display_name,
-            "name_local": (o.name.get("ko") or o.name.get("ja") or o.name.get("zh")
-                           or o.display_name),
-            "city": o.city, "tier": o.tier, "url": o.careers_url,
-            "checked_at": h[2] if h else None,
-            "status": "ok" if (h and h[1]) else ("fail" if h else "untracked"),
-        })
 
-    posts = []
+def selected() -> list[Row]:
+    """**사이트에 실리는 공고 한 벌.** 텔레그램 재발송도 이 목록을 그대로 쓴다.
+
+    거르는 기준을 두 군데에 두면 웹과 봇이 어긋난다 — 실제로 어긋나 있었다."""
+    _offs, by, sent, _h, conn = _load_rows()
+    if conn:
+        conn.close()
+    rows: list[Row] = []
     for d, sent_at in sent:
         p = Posting(**d)
         verified.apply(p)          # 확인된 사실이 있으면 저장분보다 우선한다
@@ -99,15 +113,64 @@ def build() -> dict:
         grade, grade_why = relevance.firm_grade(p, off)
         if grade == "weak":
             continue
-        fit_grade, fit_why = relevance.fit_grade(p, off, a)
-        e = eligibility.judge(p, pc)
-        pay = salary.describe(p, pc, off.tier, off.id)
+        rows.append(Row(
+            payload=d, posting=p, office=off, country=pc, assess=a,
+            elig=eligibility.judge(p, pc), fit=relevance.fit_grade(p, off, a),
+            pay=salary.describe(p, pc, off.tier, off.id),
+            grade=grade, grade_why=grade_why, sent_at=sent_at,
+        ))
+    return dedup(rows)
+
+
+def _richness(x: dict) -> tuple:
+    """내용이 더 채워진 판독을 남긴다 — 빈 판독이 채워진 판독을 덮으면 안 된다."""
+    return (
+        sum(1 for k in ("qualifications", "responsibilities", "preferred",
+                        "software", "firm_projects") if x.get(k)),
+        0 if x.get("gate") == "ask" else 1,     # 판정이 선 쪽을 우선한다
+        len(json.dumps(x, ensure_ascii=False)),
+    )
+
+
+def dedup(rows: list[Row]) -> list[Row]:
+    """같은 공고가 두 번 실리는 일이 있다. 잡보드에서 목록 URL 로 한 번, 상세 URL 로
+    또 한 번 들어오면 키가 갈린다. 회사+제목이 같으면 한 건으로 합친다."""
+    out: dict[tuple, Row] = {}
+    for r in rows:
+        k = ("".join((r.payload.get("company") or r.office.display_name or "").split()).lower(),
+             "".join((r.payload.get("title") or "").split()).lower())
+        cur = out.get(k)
+        if cur is None or _richness({**r.payload, "gate": r.elig.gate}) > \
+                _richness({**cur.payload, "gate": cur.elig.gate}):
+            out[k] = r
+    return list(out.values())
+
+
+def build() -> dict:
+    offs, by, sent, hashes, c = _load_rows()
+
+    offices = []
+    for o in offs:
+        h = hashes.get(o.id)
+        offices.append({
+            "id": o.id, "country": o.country, "name": o.display_name,
+            "name_local": (o.name.get("ko") or o.name.get("ja") or o.name.get("zh")
+                           or o.display_name),
+            "city": o.city, "tier": o.tier, "url": o.careers_url,
+            "checked_at": h[2] if h else None,
+            "status": "ok" if (h and h[1]) else ("fail" if h else "untracked"),
+        })
+
+    posts = []
+    for r in selected():
+        d, p, off, a, e = r.payload, r.posting, r.office, r.assess, r.elig
+        fit_grade, fit_why = r.fit
         posts.append({
             # _outreach 원본(실명이 들어 있다)이 그대로 실리지 않게 밑줄 키는 빼고 펼친다.
             # 아래에서 가린 사본만 "outreach" 로 싣는다.
             **{k: v for k, v in d.items() if not k.startswith("_")},
-            "country": pc, "office_name": off.display_name,
-            "office_tier": off.tier, "sent_at": sent_at,
+            "country": r.country, "office_name": off.display_name,
+            "office_tier": off.tier, "sent_at": r.sent_at,
             "verdict": a.verdict, "expired": a.expired,
             "blockers_desc": a.blockers_desc, "soft_desc": a.soft_desc,
             "met": a.met, "unknowns": a.unknowns,
@@ -120,34 +183,15 @@ def build() -> dict:
             # 여기를 빼먹으면 원문만 가리고 번역본으로 실명이 새어 나간다 (실제로 그랬다).
             "i18n": (_redact({k: v for k, v in (d.get("_i18n") or {}).items() if k != "hash"})
                      if _identity_known() else None) or None,
-            "grade": grade, "grade_why": grade_why, "pay": pay,
+            "grade": r.grade, "grade_why": r.grade_why, "pay": r.pay,
             "fit": fit_grade, "fit_why": fit_why,
             "gate_reason": e.reason, "gate_evidence": e.evidence, "gate_action": e.action,
         })
 
-    # 같은 공고가 두 번 실리는 일이 있다. 잡보드에서 목록 URL 로 한 번, 상세 URL 로
-    # 또 한 번 들어오면 키가 갈린다. 화면에서는 회사+제목이 같으면 한 건으로 합치고,
-    # **내용이 더 채워진 쪽**을 남긴다 (빈 판독이 채워진 판독을 덮으면 안 된다).
-    def _richness(x: dict) -> tuple:
-        return (
-            sum(1 for k in ("qualifications", "responsibilities", "preferred",
-                            "software", "firm_projects") if x.get(k)),
-            0 if x.get("gate") == "ask" else 1,     # 판정이 선 쪽을 우선한다
-            len(json.dumps(x, ensure_ascii=False)),
-        )
-
-    dedup: dict[tuple, dict] = {}
-    for x in posts:
-        k = ("".join((x.get("company") or x.get("office_name") or "").split()).lower(),
-             "".join((x.get("title") or "").split()).lower())
-        if k not in dedup or _richness(x) > _richness(dedup[k]):
-            dedup[k] = x
-    posts = list(dedup.values())
-
     # 아카이브(과거 공고) — LLM 을 거치지 않고 목록에서 직접 긁은 가벼운 기록이다.
     # JD 는 없지만 '누가 언제 뽑았나' 는 알 수 있어서 내년 시점을 잡는 데 쓰인다.
     archive = []
-    if db.exists():
+    if c is not None:
         try:
             for url, country, company, title, posted, deadline, src in c.execute(
                 "SELECT url,country,company,title,posted_at,deadline,source FROM archive"
@@ -158,6 +202,7 @@ def build() -> dict:
                                 "source": src})
         except sqlite3.OperationalError:
             pass   # 아직 아카이브를 한 번도 안 돌렸다
+        c.close()
 
     # ── 공고가 없는 사무소 ──────────────────────────────
     # 한국 아틀리에는 공고를 거의 내지 않는다. 상시로 포트폴리오를 받아 뽑는다.

@@ -18,6 +18,11 @@ DOCS = ROOT / "docs"
 SITE = ROOT / "site"
 
 DOCS.mkdir(exist_ok=True)
+
+# 화면 문구는 config/locales/*.yaml 이 원본이다. 봇도 같은 파일을 읽는다.
+# 여기서 다시 만들어야 yaml 만 고치고 ui.js 를 안 고친 채 배포되는 일이 없다.
+subprocess.run([sys.executable, str(ROOT / "tools" / "build_ui.py")], check=True)
+
 for name in ("index.html", "app.js", "ui.js"):
     shutil.copyfile(SITE / name, DOCS / name)
 (DOCS / ".nojekyll").write_text("", encoding="utf-8")

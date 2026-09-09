@@ -37,7 +37,12 @@ sweep:
   weekday: 0              # 0=월요일
   hour: 9                 # 로컬 시각
 
-locale: ko                # ko | zh_TW
+locale: ko                # ko | zh_TW — 로그·내부용
+
+telegram:
+  # 봇을 읽는 사람은 대만 사람이다. 사이트 locale 과 상관없이 번체중문으로 보낸다.
+  # 문구는 config/locales/zh_TW.yaml (사이트 화면과 같은 파일) 에서 온다.
+  locale: zh_TW           # ko | en | zh_TW
 
 outreach:
   # '문의 필요' 판정이 난 공고에 대해 실제로 보낼 수 있는 메일 초안을 같이 만든다.

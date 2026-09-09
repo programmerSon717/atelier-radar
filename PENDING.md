@@ -1,8 +1,15 @@
 # 대기 중인 것 (세션 끊겨도 여기 보고 이어가기)
 
-최종 갱신: 2026-09-07
+최종 갱신: 2026-09-09
 
 ## 사용자가 줘야 진행되는 것
+- [ ] **`✅可以應徵` 토픽 만들기 + 시크릿 등록** — 봇을 웹 기준으로 맞추면서 넣은 자리다.
+      1. 로컬에서 `./.venv/bin/python tools/setup_topics.py` (기존 3개는 건드리지 않는다.
+         이름을 중문으로 바꾸려면 `--rename`)
+      2. 나온 `TELEGRAM_TOPIC_OPEN` 값을 리포 Settings → Secrets 에 같은 이름으로 등록
+      **없으면 지원 가능 건이 나라 토픽에만 간다** (동작은 한다 — 그 토픽만 안 생길 뿐)
+- [ ] **53건 다시 보내기 실행** — Actions → atelier-radar → Run workflow → `resend` 체크.
+      클라우드 저장분(캐시)이 진짜 목록이라 로컬에서 돌리면 안 된다
 - [ ] **GitHub Actions 시크릿 등록 확인** — 리포 Settings → Secrets 에 7개가 있어야 한다.
       `GEMINI_API_KEY` `TELEGRAM_BOT_TOKEN` `TELEGRAM_CHAT_IDS`
       `TELEGRAM_TOPIC_KR/JP/TW` `CANDIDATE_NAME` (+ 새로 추가된 `CANDIDATE_SCHOOL`)

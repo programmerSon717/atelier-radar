@@ -111,6 +111,28 @@ check("영어 시험은 충족 조건", any("영어 시험" in m for m in assess
 ko = P(title="신입 채용", language_test="TOPIK 4급 이상")
 check("TOPIK 은 장벽", eligibility.judge(ko, "KR").gate, "native")
 
+# ── 문구가 한곳에서 오는가 ──────────────────────────────────
+# site/ui.js 는 config/locales/*.yaml 에서 생성된다. 손으로 고치면 웹과 봇이 갈린다.
+from tools.build_ui import OUT as UI_JS, build as build_ui          # noqa: E402
+check("site/ui.js 가 config/locales 와 같다",
+      UI_JS.read_text(encoding="utf-8") == build_ui(), True)
+
+# 봇이 쓰는 문구가 실제로 있는지 — 없으면 메시지에 키 이름이 그대로 찍힌다
+from src.render import load_locale                                  # noqa: E402
+_L = load_locale("zh_TW")
+_need = ["g_open", "fit_recommend", "resp", "qual", "pref", "soft", "cond",
+         "cond_employ", "cond_process", "cond_lang", "unknown_h", "contact_h",
+         "projects", "pay", "pay_stated", "pay_ref", "pay_avg", "pay_src", "pay_none",
+         "pay_noamt", "blockers", "softb", "met", "unknowns", "mail_h", "mail_subject",
+         "mail_send_note", "hooks", "asks", "source", "thin", "deadline", "expired",
+         "today_due", "due_in", "track_new_grad", "track_intern", "track_intern_ft",
+         "track_year_round", "tier_other"]
+check("봇이 쓰는 zh_TW 문구가 모두 있다",
+      [k for k in _need if k not in (_L.get("web") or {})], [])
+check("봇 전용 문구(해시태그·오류)가 있다",
+      all(k in (_L.get("bot") or {}) for k in ("tag_country", "tag_track", "tag_gate", "errors")),
+      True)
+
 # ── 결과 ───────────────────────────────────────────────────
 if fails:
     print(f"실패 {len(fails)}건")

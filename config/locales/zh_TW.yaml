@@ -1,33 +1,149 @@
-new_posting: "新職缺"
-office: "事務所"
-track: "類別"
-deadline: "截止"
-language: "語言"
-source: "來源"
-unresolved: "未確認"
-no_new: "無新職缺"
-verdict:
-  fit: "可申請"
-  conditional: "有條件"
-  blocked: "不符資格"
-  unknown: "需確認"
-  expired: "已截止"
-track_label:
-  new_grad: "新鮮人招募"
-  intern: "實習"
-  intern_to_fulltime: "實習轉正職"
-  entry_level: "初階"
-  year_round: "長期招募"
-  other: "其他"
-run_summary: "已檢查 {checked} 間事務所 · 新增 {new} 則"
-responsibilities: "工作內容"
-qualifications: "應徵條件"
-preferred: "加分條件"
-software: "軟體需求"
-employment: "職務類別"
-salary: "薪資"
-process: "甄選流程"
-fit:
-  recommend: "推薦 — 值得投的地方"
-  neutral: "中立 — 資訊不足，難以判斷"
-  avoid: "不推薦"
+# 사이트·봇이 함께 쓰는 문구.
+# web: 아래는 site/ui.js 로 생성된다 — **ui.js 를 직접 고치지 마라.**
+# 여기를 고치고 `tools/build_ui.py` 를 돌린다. 웹과 텔레그램이 같은 말을 쓰는 근거다.
+run_summary: 已檢查 {checked} 間事務所 · 新增 {new} 則
+no_new: 無新職缺
+bot:
+  new_posting: 新職缺
+  part: （{i}/{n}）
+  tag_country:
+    KR: 韓國
+    JP: 日本
+    TW: 台灣
+  tag_track:
+    new_grad: 新鮮人招募
+    intern: 實習
+    intern_to_fulltime: 可轉正實習
+    entry_level: 新鮮人招募
+    year_round: 常年招募
+  tag_gate:
+    open: 可以應徵
+    ask: 需要詢問
+    native: 語言門檻
+    domestic: 限當地留學生
+    closed: 不開放
+    unknown: 需確認
+  more_offices: 外 {n} 間
+  errors:
+    quota_day: 當日額度用盡
+    quota_all: 所有模型當日額度用盡
+    quota_rate: 超出請求額度
+    overload: 模型暫時過載
+    http404: 徵才頁面不存在（404）
+    http403: 存取被擋（403）
+    js_page: JavaScript 頁面 — 需人工確認
+    no_url: 未登錄徵才網址
+    connect: 連線失敗
+    timeout: 回應逾時
+web:
+  name_ph: （您的姓名）
+  school_ph: （研究所）
+  src_saramin: Saramin 企業資訊
+  mail_original: ▸ 顯示寄出用原文（對方事務所的語言）
+  mail_send_note: 實際寄信時請直接使用這份原文，它是以對方事務所的語言撰寫的。
+  q_now_other: 其他
+  q_soon_n: 兩週內截止 {n} 筆
+  q_intern_n: 實習·可轉正 {n} 筆
+  cond_employ: 僱用型態
+  cond_process: 甄選流程
+  cond_lang: 語言要求
+  contact_h: 聯絡方式 · 應徵方法
+  mail_subject: 主旨
+  mail_body: 內文
+  archive_h: 歷史紀錄
+  lang_label: 語言
+  lang_name: 繁體中文
+  tagline: 追蹤日本、韓國、台灣建築師事務所的新鮮人職缺與實習
+  k_off: 追蹤事務所
+  k_post: 蒐集職缺
+  k_time: 最後更新
+  profile_h: 求職條件
+  profile_1: 台灣籍 · 無正職經驗 · 不諳日文
+  profile_2: 建築碩士在學 · 2027年5月畢業
+  guide_h: 現在該看哪裡
+  guide_sub: 依情況指引
+  g_open: 可以應徵
+  g_ask: 需要詢問
+  g_native: 語言門檻
+  g_domestic: 限當地留學生
+  g_closed: 不開放
+  g_open_d: 公告寫明開放外籍應徵，或職缺在台灣、沒有國籍問題
+  g_ask_d: 公告完全沒提到外籍招募。要先寫信問人資
+  g_native_d: 公告要求 TOPIK、JLPT 等當地語言檢定或母語程度
+  g_domestic_d: 雖然招外籍，但對象是就讀韓國或日本大學的留學生。美國畢業者不符資格
+  g_closed_d: 公告明寫不收外籍應徵者，或不提供工作簽證
+  q_now: 先看現在就能投的
+  q_soon: 有沒有快截止的
+  q_intern: 想先從實習開始
+  q_korean: 不會韓文，韓國也能投嗎
+  q_domestic: 韓國大企業的外籍專案為什麼不行
+  a_korean: 韓國公告大多<b>根本沒提</b>外籍招募。那是未確認，不是不行 —— <b>{n}件「需要詢問」</b>，一封信就能問清楚
+  a_domestic: 那類專案通常以<b>就讀韓國大學的留學生</b>為對象，而且要求 TOPIK 級數。美國畢業者不符資格，所以另外歸為<b>{n}件限當地留學生</b>
+  all: 全部
+  kr: 🇰🇷 韓國
+  jp: 🇯🇵 日本
+  tw: 🇹🇼 台灣
+  live: 進行中
+  past: 已截止
+  search_ph: 搜尋事務所或職務
+  clear: ✕ 清除篩選
+  count: 顯示 {n} 筆
+  empty: 沒有符合的職缺。試著放寬篩選條件。
+  empty_past: 目前沒有已截止的職缺。截止後會收在這裡。
+  load_fail: 無法載入資料。請稍後重新整理。
+  resp: 工作內容
+  qual: 應徵資格
+  pref: 加分條件
+  soft: 使用軟體
+  cond: 條件
+  unknown_h: 公告未載明
+  projects: 此事務所作品
+  pay: 待遇
+  pay_stated: 公告載明
+  pay_none: 公告未提供金額
+  pay_noamt: （未載金額）
+  pay_ref: 參考
+  pay_avg: 公司整體平均
+  pay_src: 來源
+  blockers: 卡住的條件
+  softb: 準備後可跨過的條件
+  met: 已符合的條件
+  unknowns: 需要確認的事
+  mail_h: 詢問信草稿
+  mail_copy: 複製內文
+  mail_copied: 已複製 ✓
+  mail_failed: 複製失敗 —— 請手動選取
+  hooks: 可以連結的點
+  asks: 一定要問的事
+  source: 原始公告 →
+  site_link: 事務所網站 →
+  careers_link: 徵才頁面 →
+  thin: 原始頁面沒有這則職缺的細節，請直接確認出處。
+  archive_note: 已截止職缺的摘要紀錄（無細節）
+  open_h: 沒有公告 —— 可主動投遞的事務所（{n}間）
+  open_note: 這些事務所不對外貼公告。韓國的 atelier 多半這樣找人 —— 與其等公告，不如直接寄作品集。
+  open_always: 常年收作品集
+  gap_h: 尚未追蹤到的事務所 —— {n}間
+  gap_note: 不是找不到徵才網址，就是頁面用 JavaScript 產生、讀不到內容。停在這裡的期間，就算貼出職缺也抓不到。
+  foot_1: 所有欄位都來自公告原文，不做推測
+  foot_2: 無法確認的項目寧可留白，也不臆測
+  deadline: 截止
+  posted: 發布
+  expired: 已截止
+  today_due: 今天截止
+  due_in: 剩 {n} 天
+  fit_recommend: 推薦
+  fit_neutral: 中立
+  fit_avoid: 不推薦
+  tier_atelier: Atelier
+  tier_large: 大型事務所
+  tier_mid: 中型
+  tier_global: 國際
+  tier_other: 其他
+  track_new_grad: 新鮮人招募
+  track_intern: 實習
+  track_intern_ft: 可轉正實習
+  track_year_round: 常年招募
+  toast_new: 新增 {n} 筆職缺
+  toast_upd: 清單已更新
+  none_soon: 兩週內沒有截止的職缺

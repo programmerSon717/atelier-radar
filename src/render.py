@@ -1,10 +1,21 @@
-"""텔레그램 메시지 만들기. 문구는 전부 config/locales/*.yaml 에서 온다.
-ko → zh_TW 전환은 settings.yaml 의 locale 한 줄만 바꾸면 된다."""
+"""텔레그램 메시지 만들기.
+
+**웹에 있는 것을, 웹과 같은 순서로, 웹과 같은 말로 보여준다.**
+  · 화면 문구 → config/locales/<lang>.yaml 의 web: 절. site/ui.js 와 같은 파일에서 온다.
+  · 공고 내용 → 저장분의 _i18n 번역본 (tools/translate_postings.py · src/i18n.py).
+번역이 아직 없는 자리만 원문으로 떨어진다 (사이트의 F() 와 같은 규칙).
+
+예전에는 봇이 원문 필드를 그대로 실어서 한국어·일본어 공고가 그대로 나갔고,
+섹션 제목도 여기 한국어로 박혀 있었다. 그래서 웹과 봇이 다른 물건이었다.
+"""
 import html
+import re
 from pathlib import Path
+from typing import Any, Optional
 
 import yaml
 
+from . import clock
 from .match import Assessment
 from .models import Posting
 from .targets import Office
@@ -12,213 +23,268 @@ from .targets import Office
 LOCALE_DIR = Path(__file__).resolve().parent.parent / "config" / "locales"
 
 VERDICT_ICON = {"fit": "✅", "conditional": "🟡", "blocked": "⛔️", "unknown": "❓", "expired": "⏰"}
+COUNTRY_FLAG = {"KR": "🇰🇷", "JP": "🇯🇵", "TW": "🇹🇼"}
+FIT_ICON = {"recommend": "👍", "neutral": "➖", "avoid": "👎"}
+# 사이트의 TRACK_KEY 와 같은 표 (site/app.js)
+TRACK_KEY = {"new_grad": "track_new_grad", "intern": "track_intern",
+             "intern_to_fulltime": "track_intern_ft", "entry_level": "track_new_grad",
+             "year_round": "track_year_round", "other": "tier_other"}
+SOURCE_KEY = {"사람인 기업정보": "src_saramin"}
 
 
 def load_locale(name: str) -> dict:
     return yaml.safe_load((LOCALE_DIR / f"{name}.yaml").read_text(encoding="utf-8"))
 
 
-def _esc(s: str) -> str:
+def _esc(s: Any) -> str:
     return html.escape(str(s), quote=False)
 
 
-# 라벨 앞머리 기호로 중요도를 가른다. 막는 것(🔴⛔️)은 위로, 참고(⚪️)는 아래로.
-_LABEL_ORDER = {"🔴": 0, "⛔️": 0, "⏰": 1, "🏗": 2, "🔧": 2, "🟡": 3,
-                "🌏": 4, "🟢": 5, "🗣": 6, "📍": 7, "⚪️": 8, "⚠️": 9}
+def T(L: dict, key: str, **vars: Any) -> str:
+    """화면 문구. 사이트의 T() 와 같은 자리를 본다."""
+    v = (L.get("web") or {}).get(key, key)
+    for k, x in vars.items():
+        v = v.replace("{" + k + "}", str(x))
+    # 웹 문구에는 <b> 가 섞여 있다 (a_korean 등). 텔레그램도 <b> 를 그대로 쓴다.
+    return v
 
 
-def _sort_labels(labels: list[str]) -> list[str]:
-    return sorted(labels, key=lambda l: _LABEL_ORDER.get(l[:2].strip(), 5))
+def _val(tr: Optional[dict], src: dict, field: str):
+    """번역본에 값이 있으면 그것, 없으면 원문. 사이트의 F() 와 같은 규칙."""
+    v = (tr or {}).get(field)
+    if isinstance(v, list):
+        if v:
+            return v
+    elif v not in (None, ""):
+        return v
+    return src.get(field)
 
 
-def _bullets(items: list[str], limit: int) -> str:
-    return "\n".join(f"  • {_esc(x)}" for x in items[:limit])
+# ── 조각들 ──────────────────────────────────────────────
+def _bul(items, limit: int) -> str:
+    return "\n".join(f"• {_esc(x)}" for x in (items or [])[:limit])
 
 
-COUNTRY_FLAG = {"KR": "🇰🇷", "JP": "🇯🇵", "TW": "🇹🇼"}
+def _block(title: str, items, limit: int = 12) -> Optional[str]:
+    if not items:
+        return None
+    return f"{title}\n<blockquote>{_bul(items, limit)}</blockquote>"
 
 
-def _bul(items, limit):
-    return "\n".join(f"• {_esc(x)}" for x in items[:limit])
+def pay_value(raw: Any, lang: str) -> str:
+    """'8,460만원' 을 중문 화면에 그대로 두면 읽을 수 없다. site/app.js payValue 와 같은 규칙."""
+    s = str(raw or "")
+    if lang == "ko":
+        return s
+    m = re.fullmatch(r"([\d,]+)\s*만원", s.strip())
+    if m:
+        won = int(m.group(1).replace(",", "")) * 10000
+        return f"KRW {won:,}" if lang == "en" else f"{m.group(1)}萬韓元"
+    m = re.fullmatch(r"([\d,]+)\s*万円", s.strip())
+    if m:
+        yen = int(m.group(1).replace(",", "")) * 10000
+        return f"JPY {yen:,}" if lang == "en" else f"{m.group(1)}萬日圓"
+    return s
 
 
-def _tags(p: Posting, office: Office, elig) -> str:
-    """해시태그 — 나중에 텔레그램 검색으로 되찾을 수 있게."""
-    # 해시태그에 이모지를 쓰면 텔레그램이 태그로 인식하지 않는다
-    out = [{"KR": "한국", "JP": "일본", "TW": "대만"}.get(office.country, office.country)]
-    t = {"new_grad": "신입공채", "intern": "인턴", "intern_to_fulltime": "전환형인턴",
-         "entry_level": "신입", "year_round": "상시채용"}.get(p.track)
+def _source_name(L: dict, v: Any) -> str:
+    k = SOURCE_KEY.get(str(v or ""))
+    return T(L, k) if k else str(v or "")
+
+
+def _track_label(L: dict, track: Optional[str]) -> str:
+    return T(L, TRACK_KEY.get(track or "", "tier_other"))
+
+
+def _tags(L: dict, p: Posting, country: str, gate: str,
+          software: list | None = None) -> str:
+    """해시태그 — 나중에 텔레그램 검색으로 되찾을 수 있게. 이모지는 태그로 인식되지 않는다."""
+    b = L.get("bot") or {}
+    out = [(b.get("tag_country") or {}).get(country, country)]
+    t = (b.get("tag_track") or {}).get(p.track or "")
     if t:
         out.append(t)
     # 게이트가 늘어날 때 여기를 빠뜨리면 파이프라인이 통째로 죽는다. get 으로 받는다.
-    out.append({"open": "지원가능", "ask": "문의필요", "native": "언어장벽",
-                "domestic": "국내대학전형", "closed": "지원불가"}.get(elig.gate, "확인필요"))
-    for sw in p.software[:3]:
+    out.append((b.get("tag_gate") or {}).get(gate) or (b.get("tag_gate") or {}).get("unknown", ""))
+    for sw in (software if software is not None else (p.software or []))[:3]:
         out.append(sw.replace(" ", ""))
     return " ".join(f"#{x}" for x in dict.fromkeys(out) if x)
 
 
-def _urgency(p: Posting, country: str) -> str | None:
+def _urgency(L: dict, p: Posting, country: str) -> Optional[str]:
     """마감이 코앞이면 맨 위에 띄운다. 내일 마감인 공고를 목록 중간에서 발견하면 늦는다.
 
-    반드시 **공고가 있는 나라 시각**으로 센다. 미국에서 보면 하루 어긋난다."""
-    from . import clock
+    반드시 **공고가 있는 나라 시각**으로 센다 (사이트도 같다). 미국에서 보면 하루 어긋난다."""
     d = clock.days_left(p.deadline, country)
-    if d is None or d < 0:
+    if d is None or d < 0 or d > 3:
         return None
-    if d == 0:
-        return "🚨 <b>오늘 마감</b> — 오늘 안에 접수해야 한다"
-    if d <= 3:
-        return f"🚨 <b>D-{d} 마감 임박</b>"
-    if d <= 7:
-        return f"⏳ <b>D-{d}</b>"
-    return None
-
-
-FIT_ICON = {"recommend": "👍", "neutral": "➖", "avoid": "👎"}
+    return f"🚨 <b>{T(L, 'today_due') if d == 0 else T(L, 'due_in', n=d)}</b>"
 
 
 def render_posting(p: Posting, office: Office, a: Assessment, L: dict,
-                   elig=None, kit=None, pay=None, fit=None) -> str:
-    """텔레그램 메시지. 섹션 이모지 + 인용구로 훑기 쉽게 나눈다."""
+                   elig=None, kit=None, pay=None, fit=None,
+                   tr: Optional[dict] = None, lang: str = "zh_TW",
+                   country: Optional[str] = None) -> str:
+    """사이트의 row() 와 같은 것을, 같은 순서로."""
     from . import eligibility as _el
-    elig = elig or _el.judge(p, office.country)
+    from . import i18n as _i18n
 
-    who = p.company or office.display_name
-    where = p.location or office.city or office.country
-    track = L["track_label"].get(p.track, p.track)
-    flag = COUNTRY_FLAG.get(office.country, "🏛")
+    pc = country or office.country
+    elig = elig or _el.judge(p, pc)
+    fit_grade, fit_why = fit if fit else (None, [])
+    kitd = _i18n.kit_dict(kit)
+    src = _i18n.display_source(p, a, elig, fit_why, pay, kitd)
+    F = lambda f: _val(tr, src, f)                                    # noqa: E731
 
-    urgent = _urgency(p, office.country)
-    out = ([urgent, ""] if urgent else []) + [
-        f"{flag} <b>{_esc(who)}</b>",
-        f"🏛 <b>{_esc(p.title)}</b>",
-        "",
-        # ── 가장 먼저 보여야 할 것: 애초에 지원이 되는가 ──
-        f"{elig.icon} <b>{_esc(elig.label(L.get('_locale', 'ko')))}</b>",
-    ]
-    if elig.evidence:
-        out.append(f"<blockquote>{_esc(elig.evidence)}</blockquote>")
-    else:
-        out.append(f"<i>{_esc(elig.reason)}</i>")
-    if elig.action:
-        out.append(f"👉 {_esc(elig.action)}")
+    dl = clock.days_left(p.deadline, pc)
+    flag = COUNTRY_FLAG.get(pc, "🏛")
+    track = _track_label(L, p.track)
 
-    # ── 추천도 ── 지원이 되느냐 다음으로 궁금한 건 "여기 갈 만한가" 다
-    if fit:
-        grade, reasons = fit
-        out += ["", f"{FIT_ICON.get(grade, '➖')} <b>{_esc(L['fit'][grade])}</b>"]
-        if reasons:
-            out.append(f"<blockquote>{_bul(reasons, 3)}</blockquote>")
+    blocks: list[str] = []
 
-    out += ["", f"📍 {_esc(where)}   ·   <code>{_esc(track)}</code>"]
+    # ── 머리: 게이트 · 추천도 · 제목 · 회사 (사이트의 .rtop) ──
+    head = [f"{elig.icon} <b>{_esc(F('gate_label') or T(L, 'g_' + elig.gate))}</b>"]
+    if fit_grade:
+        why = " · ".join((F("fit_why") or [])[:3])
+        head.append(f"{FIT_ICON.get(fit_grade, '➖')} <b>{_esc(T(L, 'fit_' + fit_grade))}</b>"
+                    + (f" <i>— {_esc(why)}</i>" if why else ""))
+    head.append(f"🏛 <b>{_esc(F('title'))}</b>")
+    # 국기는 메타 줄에만 둔다 (사이트도 .rtop 에는 국기가 없다)
+    head.append(f"<b>{_esc(F('company') or office.display_name)}</b>")
+    blocks.append("\n".join(head))
+
+    urgent = _urgency(L, p, pc)
+    if urgent:
+        blocks.append(urgent)
+
+    # ── 메타 한 줄 (사이트의 .meta) ──
+    et = F("employment_type")
+    # 고용형태가 트랙과 같은 말이면 두 번 쓰지 않는다 ("實習 · 實習")
+    if et and (track and track in str(et) or re.fullmatch(r"intern(ship)?|인턴|實習",
+                                                          str(p.employment_type or "").strip(), re.I)):
+        et = None
+    meta = [f"{flag} {_esc(F('location') or office.display_name)}", f"<code>{_esc(track)}</code>"]
+    if et:
+        meta.append(_esc(et))
     if p.deadline:
-        out.append(f"{'⏰' if a.expired else '🗓'} <b>{L['deadline']} {_esc(p.deadline)}</b>")
+        d_txt = (f"{T(L, 'expired') if a.expired else T(L, 'deadline')} "
+                 f"{_esc(F('deadline_text') or p.deadline)}")
+        if dl is not None and 0 <= dl <= 30:
+            d_txt += f" (D-{dl})"
+        meta.append(f"<b>{d_txt}</b>")
+    blocks.append("📍 " + "   ·   ".join(meta))
 
-    if p.summary:
-        out += ["", f"<blockquote>{_esc(p.summary)}</blockquote>"]
+    # ── 왜 이 판정인가 (사이트의 .why / .act) ──
+    why_line = F("gate_evidence") or F("gate_reason")
+    if why_line:
+        blocks.append(f"<b>{_esc(F('gate_label') or '')}</b>\n<blockquote>{_esc(why_line)}</blockquote>")
+    if F("gate_action"):
+        blocks.append(f"👉 {_esc(F('gate_action'))}")
+    if F("summary"):
+        blocks.append(f"<blockquote>{_esc(F('summary'))}</blockquote>")
 
-    if p.responsibilities:
-        out += ["", f"📋 <b>{L['responsibilities']}</b>",
-                f"<blockquote>{_bul(p.responsibilities, 10)}</blockquote>"]
-    if p.qualifications:
-        out += ["", f"✔️ <b>{L['qualifications']}</b>",
-                f"<blockquote>{_bul(p.qualifications, 10)}</blockquote>"]
-    if p.preferred:
-        out += ["", f"➕ <b>{L['preferred']}</b>",
-                f"<blockquote>{_bul(p.preferred, 8)}</blockquote>"]
-    if p.software:
-        out += ["", f"🖥 <b>{L['software']}</b>",
-                f"<code>{_esc(' · '.join(p.software[:12]))}</code>"]
+    # ── 본문 (사이트의 .jd — 순서까지 같다) ──
+    jd: list[Optional[str]] = [
+        _block(f"📋 <b>{T(L, 'resp')}</b>", F("responsibilities")),
+        _block(f"✔️ <b>{T(L, 'qual')}</b>", F("qualifications")),
+        _block(f"➕ <b>{T(L, 'pref')}</b>", F("preferred")),
+    ]
+    software = F("software") or p.software
+    if software:
+        jd.append(f"🖥 <b>{T(L, 'soft')}</b>\n<code>{_esc(' · '.join(software[:12]))}</code>")
 
-    facts = [(L["employment"], p.employment_type),
-             (L["process"], p.process), (L["language"], p.language_required)]
+    facts = [(T(L, "cond_employ"), F("employment_type")),
+             (T(L, "cond_process"), F("process")),
+             (T(L, "cond_lang"), F("language_required"))]
     facts = [f"• {k}: {_esc(v)}" for k, v in facts if v]
     if facts:
-        out += ["", f"📄 <b>조건</b>", *facts]
+        jd.append(f"📄 <b>{T(L, 'cond')}</b>\n" + "\n".join(facts))
+    if F("notes"):
+        jd.append(f"❓ <b>{T(L, 'unknown_h')}</b>\n<i>{_esc(F('notes'))}</i>")
 
-    # ── 연봉 ── 공고값과 업계 참고치를 반드시 구분해서 보여준다
-    if pay:
-        lines = []
-        if pay.get("stated"):
-            lines.append(f"• 공고 명시: <b>{_esc(pay['stated'])}</b>")
-        elif p.salary:
-            lines.append(f"• 공고 명시: {_esc(p.salary)} (금액 없음)")
-        c = pay.get("company_avg")
-        if c:
-            lines.append(f"• <b>[참고]</b> 이 회사 전체 평균 {_esc(c['average'])}")
-            lines.append(f"  <i>{_esc(c['basis'])} · 출처: {_esc(c.get('source') or '')}</i>")
-        if lines:
-            out += ["", "💰 <b>연봉</b>", *lines]
-
-    # 판정 근거는 색깔 공이 아니라 제목으로 나눈다. 뭐가 막고 뭐가 되는지가 바로 보인다.
-    if a.blockers_desc:
-        out += ["", "⛔ <b>걸리는 조건</b>",
-                f"<blockquote>{_bul(a.blockers_desc, 5)}</blockquote>"]
-    if a.soft_desc:
-        out += ["", "🔧 <b>준비하면 넘는 조건</b>",
-                f"<blockquote>{_bul(a.soft_desc, 4)}</blockquote>"]
-    if a.met:
-        out += ["", "✔️ <b>충족하는 조건</b>",
-                f"<blockquote>{_bul(a.met, 4)}</blockquote>"]
-    if a.unknowns:
-        out += ["", "❔ <b>공고에 없어 확인이 필요한 것</b>",
-                f"<blockquote>{_bul(a.unknowns, 4)}</blockquote>"]
-
-    if p.notes:
-        out += ["", f"❓ <i>{_esc(L['unresolved'])}: {_esc(p.notes)}</i>"]
-
-    # ── 연락처 ── 문의하라고만 하고 어디로 할지 안 주면 아무것도 못 한다
+    # 연락처 — 문의하라고만 하고 어디로 할지 안 주면 아무것도 못 한다
     contacts = []
     if p.contact_email:
         contacts.append(f"✉️ <code>{_esc(p.contact_email)}</code>")
     if p.contact_phone:
         contacts.append(f"☎️ <code>{_esc(p.contact_phone)}</code>")
-    if p.apply_how:
-        contacts.append(f"📮 {_esc(p.apply_how)}")
+    if F("apply_how"):
+        contacts.append(f"📮 {_esc(F('apply_how'))}")
     if contacts:
-        out += ["", "📇 <b>연락처 · 지원 방법</b>", *contacts]
+        jd.append(f"📇 <b>{T(L, 'contact_h')}</b>\n" + "\n".join(contacts))
 
-    if p.firm_projects:
-        out += ["", "🏗 <b>이 사무소 프로젝트</b>",
-                f"<blockquote>{_bul(p.firm_projects, 6)}</blockquote>"]
+    jd.append(_block(f"🏗 <b>{T(L, 'projects')}</b>", F("firm_projects"), 6))
 
-    # ── 바로 보낼 수 있는 문의 메일 ──
-    if kit is not None:
-        out += ["", "📨 <b>문의 메일 초안</b>",
-                f"<b>제목:</b> {_esc(kit.subject)}",
-                f"<blockquote>{_esc(kit.body)}</blockquote>"]
-        if kit.hooks:
-            out += ["🪝 <b>엮을 거리</b>", f"<blockquote>{_bul(kit.hooks, 4)}</blockquote>"]
-        if kit.ask_points:
-            out += ["❓ <b>꼭 물어볼 것</b>", f"<blockquote>{_bul(kit.ask_points, 4)}</blockquote>"]
+    # 연봉 — 공고값과 참고치를 반드시 구분한다 (사이트와 같은 표기)
+    if pay:
+        lines = []
+        if pay.get("stated"):
+            lines.append(f"• {T(L, 'pay_stated')}: <b>{_esc(F('pay_stated') or pay['stated'])}</b>")
+        elif p.salary:
+            lines.append(f"• {T(L, 'pay_stated')}: {_esc(F('salary') or p.salary)} {T(L, 'pay_noamt')}")
+        c = pay.get("company_avg")
+        if c:
+            lines.append(f"• [{T(L, 'pay_ref')}] {T(L, 'pay_avg')} "
+                         f"<b>{_esc(pay_value(c.get('average'), lang))}</b>")
+            lines.append(f"  <i>{_esc(F('pay_note') or c.get('basis') or '')} · "
+                         f"{T(L, 'pay_src')}: {_esc(_source_name(L, c.get('source')))}</i>")
+        if not lines:
+            lines.append(f"• <i>{T(L, 'pay_none')}</i>")
+        jd.append(f"💰 <b>{T(L, 'pay')}</b>\n" + "\n".join(lines))
 
-    out += ["", f'🔗 <a href="{html.escape(p.source_url, quote=True)}">{L["source"]}</a>',
-            "", _tags(p, office, elig)]
-    return "\n".join(out)
+    # 판정 근거 — 뭐가 막고 뭐가 되는지 제목으로 가른다
+    jd += [
+        _block(f"⛔ <b>{T(L, 'blockers')}</b>", F("blockers_desc"), 5),
+        _block(f"🔧 <b>{T(L, 'softb')}</b>", F("soft_desc"), 4),
+        _block(f"✔️ <b>{T(L, 'met')}</b>", F("met"), 4),
+        _block(f"❔ <b>{T(L, 'unknowns')}</b>", F("unknowns"), 4),
+    ]
+    jd = [x for x in jd if x]
+    if jd:
+        blocks += jd
+    else:
+        blocks.append(f"<i>{T(L, 'thin')}</i>")
+
+    # ── 문의 메일 초안 ── 읽는 말로 보여주고, 보낼 원문을 따로 붙인다 (사이트와 같다)
+    if kitd:
+        subj = F("mail_subject") or kitd.get("subject")
+        body = F("mail_body") or kitd.get("body")
+        blocks.append(f"📨 <b>{T(L, 'mail_h')}</b>\n"
+                      f"<b>{T(L, 'mail_subject')}:</b> {_esc(subj)}\n"
+                      f"<blockquote>{_esc(body)}</blockquote>")
+        if body != kitd.get("body"):
+            blocks.append(f"<i>{T(L, 'mail_send_note')}</i>\n"
+                          f"<blockquote expandable>{_esc(kitd.get('body'))}</blockquote>")
+        blocks.append(_block(f"🪝 <b>{T(L, 'hooks')}</b>", F("mail_hooks"), 4) or "")
+        blocks.append(_block(f"❓ <b>{T(L, 'asks')}</b>", F("mail_asks"), 4) or "")
+
+    blocks.append(f'🔗 <a href="{html.escape(p.source_url, quote=True)}">{T(L, "source")}</a>')
+    blocks.append(_tags(L, p, pc, elig.gate, software))
+    return "\n\n".join(b for b in blocks if b)
 
 
 # API 원본 에러를 그대로 텔레그램에 쏟으면 읽을 수가 없다. 사람 말로 바꾼다.
 ERROR_PATTERNS = [
-    ("PerDay", "일일 한도 소진"),
-    ("모든 모델 일일 한도", "모든 모델 일일 한도 소진"),
-    ("RESOURCE_EXHAUSTED", "요청 한도 초과"),
-    ("UNAVAILABLE", "모델 일시 과부하"),
-    ("HTTP 404", "채용 페이지 없음(404)"),
-    ("HTTP 403", "접근 차단(403)"),
-    ("본문 부족", "JS 렌더링 페이지 — 수동 확인 필요"),
-    ("careers_url 없음", "채용 URL 미등록"),
-    ("ConnectError", "접속 실패"),
-    ("Timeout", "응답 시간 초과"),
+    ("PerDay", "quota_day"),
+    ("모든 모델 일일 한도", "quota_all"),
+    ("RESOURCE_EXHAUSTED", "quota_rate"),
+    ("UNAVAILABLE", "overload"),
+    ("HTTP 404", "http404"),
+    ("HTTP 403", "http403"),
+    ("본문 부족", "js_page"),
+    ("careers_url 없음", "no_url"),
+    ("ConnectError", "connect"),
+    ("Timeout", "timeout"),
 ]
 
 
-def humanize_error(raw: str) -> str:
-    """'jp-kume: ClientError: 429 RESOURCE_EXHAUSTED. {...}' → 'jp-kume — 요청 한도 초과'"""
+def humanize_error(raw: str, L: dict) -> str:
+    """'jp-kume: ClientError: 429 RESOURCE_EXHAUSTED. {...}' → 'jp-kume — 超出請求額度'"""
+    errs = (L.get("bot") or {}).get("errors") or {}
     who, _, rest = raw.partition(":")
-    for needle, friendly in ERROR_PATTERNS:
+    for needle, key in ERROR_PATTERNS:
         if needle in rest or needle in raw:
-            return f"{who.strip()} — {friendly}"
+            return f"{who.strip()} — {errs.get(key, key)}"
     return f"{who.strip()} — {rest.strip()[:60]}"
 
 
@@ -230,11 +296,14 @@ def render_summary(checked: int, new: int, errors: list[str], L: dict) -> str:
         # 같은 원인끼리 묶는다. 12곳이 같은 이유로 실패하면 12줄이 아니라 1줄이어야 한다.
         counts: dict[str, list[str]] = {}
         for e in errors:
-            h = humanize_error(e)
+            h = humanize_error(e, L)
             who, _, reason = h.partition(" — ")
             counts.setdefault(reason or h, []).append(who)
+        more = (L.get("bot") or {}).get("more_offices", "+{n}")
         msg += "\n"
         for reason, whos in sorted(counts.items(), key=lambda kv: -len(kv[1])):
-            names = ", ".join(whos[:4]) + (f" 외 {len(whos) - 4}곳" if len(whos) > 4 else "")
+            names = ", ".join(whos[:4])
+            if len(whos) > 4:
+                names += " " + more.replace("{n}", str(len(whos) - 4))
             msg += f"\n⚠️ <b>{_esc(reason)}</b> ({len(whos)}) — {_esc(names)}"
     return msg

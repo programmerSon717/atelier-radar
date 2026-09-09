@@ -29,33 +29,17 @@ from src import verified                                           # noqa: E402
 
 
 def display_bundle(d: dict, off) -> dict:
-    """화면에 나가는 것 전부 — 공고 원문 필드 + 우리가 만든 판정 문구."""
+    """화면에 나가는 것 전부 — 공고 원문 필드 + 우리가 만든 판정 문구.
+
+    필드 목록은 src/i18n.display_source 한곳에서 온다 (봇도 같은 것을 쓴다)."""
     p = Posting(**{k: v for k, v in d.items() if k in Posting.model_fields})
     verified.apply(p)
     pc = country_of(p, off.country)
     a = assess(p, pc, off)
     e = eligibility.judge(p, pc)
-    fit, fit_why = relevance.fit_grade(p, off, a)
+    _fit, fit_why = relevance.fit_grade(p, off, a)
     pay = salary.describe(p, pc, off.tier, off.id)
-    src = {
-        **{k: getattr(p, k, None) for k in i18n.FIELDS_TEXT if hasattr(p, k)},
-        "responsibilities": p.responsibilities, "qualifications": p.qualifications,
-        "preferred": p.preferred, "firm_projects": p.firm_projects,
-        "blockers_desc": a.blockers_desc, "soft_desc": a.soft_desc,
-        "met": a.met, "unknowns": a.unknowns,
-        "gate_label": e.label("ko"), "gate_reason": e.reason,
-        "gate_evidence": e.evidence, "gate_action": e.action,
-        "fit_why": fit_why,
-        "pay_note": (pay.get("company_avg") or {}).get("basis"),
-        "company": d.get("company"),
-    }
-    # 문의 메일도 읽을 수 있어야 한다. 보낼 때는 원문을 그대로 보낸다.
-    kit = d.get("_outreach") or {}
-    if kit:
-        src["mail_subject"] = kit.get("subject")
-        src["mail_body"] = kit.get("body")
-        src["mail_hooks"] = kit.get("hooks") or []
-        src["mail_asks"] = kit.get("ask_points") or []
+    src = i18n.display_source(p, a, e, fit_why, pay, d.get("_outreach") or None)
     return i18n.bundle_of(src)
 
 

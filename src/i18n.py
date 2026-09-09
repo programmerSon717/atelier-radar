@@ -14,9 +14,14 @@ from typing import Any, Optional
 FIELDS_TEXT = ("title", "company", "summary", "location", "employment_type", "process",
                "apply_how", "language_required", "salary", "notes", "gate_label",
                "gate_reason", "gate_evidence", "gate_action", "pay_note",
+               # 화면에 그대로 찍히는데 옮기지 않아 원문이 새던 자리들.
+               # deadline 은 날짜 계산용 원본이라 못 건드린다 — 표시용을 따로 둔다.
+               "pay_stated", "deadline_text",
                "mail_subject", "mail_body")
 FIELDS_LIST = ("responsibilities", "qualifications", "preferred", "firm_projects",
                "blockers_desc", "soft_desc", "met", "unknowns", "fit_why",
+               # "스케치업 · 라이노 · 인디자인" 이 그대로 나가고 있었다
+               "software",
                "mail_hooks", "mail_asks")
 
 LANGS = ("ko", "en", "zh_TW")
@@ -63,6 +68,10 @@ GLOSSARY = """\
 | 모듈러·지속가능 | Modular & sustainability | 模組化·永續 |
 | 리서치·공모 | Research & competitions | 研究·競圖 |
 | 시각화·모형 | Visualisation & models | 視覺化·模型 |
+| 스케치업 | SketchUp | SketchUp |
+| 라이노 | Rhino | Rhino |
+| 인디자인 | InDesign | InDesign |
+| 상시채용 | Year-round | 常年招募 |
 """
 
 SYSTEM = """\
@@ -97,7 +106,14 @@ SYSTEM = """\
    쓰고, **원문을 괄호 안에 그대로 덧붙인다** — 근거는 원문이 남아야 확인할 수 있다.
    예: Language ability is not required if you can communicate openly
        (원문: オープンマインドでコミュニケーションできる方であれば語学力は問いません)
-7. 아래 용어표는 그대로 따른다.
+7. **software 는 도구의 공식 표기로 쓴다** — "스케치업"→SketchUp, "라이노"→Rhino.
+   한글·가나로 음차된 도구 이름을 그대로 두지 마라.
+8. **deadline_text 는 마감 표기다. 숫자와 형식을 절대 바꾸지 마라.**
+   "~09/20(일)" 은 "~09/20(日)" 처럼 요일만 옮긴다. 날짜를 다시 쓰지 마라.
+   "상시채용" 처럼 날짜가 아닌 말은 용어표대로 옮긴다.
+9. pay_stated 는 공고에 적힌 급여 문구다. **금액·통화·단위를 바꾸지 마라.**
+   설명하는 말(대학원졸·교통비 지급 등)만 옮긴다.
+10. 아래 용어표는 그대로 따른다.
 
 {glossary}
 """
@@ -137,6 +153,48 @@ def bundle_of(d: dict[str, Any]) -> dict[str, Any]:
         if isinstance(v, list) and v:
             out[f] = [x for x in v if isinstance(x, str) and x.strip()]
     return out
+
+
+def kit_dict(kit) -> dict[str, Any]:
+    """메일 초안 — 발송 경로는 객체를, 저장분은 dict 를 넘긴다. 한 모양으로 맞춘다."""
+    if not kit:
+        return {}
+    if isinstance(kit, dict):
+        return kit
+    return {"subject": kit.subject, "body": kit.body,
+            "hooks": list(kit.hooks or []), "ask_points": list(kit.ask_points or [])}
+
+
+def display_source(p, a, e, fit_why, pay=None, kit=None) -> dict[str, Any]:
+    """화면·메시지에 나가는 **원문** 값 한 벌. 번역은 이걸 그대로 옮긴 것이다.
+
+    사이트(tools/export_data.py)와 텔레그램(src/render.py)이 같은 자리를 보게 하려고
+    한곳에서 만든다. 예전에는 봇이 원문 필드를, 사이트가 번역본을 따로 읽어서
+    같은 공고가 두 곳에서 다르게 보였다."""
+    src: dict[str, Any] = {k: getattr(p, k, None) for k in FIELDS_TEXT if hasattr(p, k)}
+    src.update({
+        "responsibilities": p.responsibilities, "qualifications": p.qualifications,
+        "preferred": p.preferred, "firm_projects": p.firm_projects,
+        "blockers_desc": a.blockers_desc, "soft_desc": a.soft_desc,
+        "met": a.met, "unknowns": a.unknowns,
+        "gate_label": e.label("ko"), "gate_reason": e.reason,
+        "gate_evidence": e.evidence, "gate_action": e.action,
+        "fit_why": fit_why,
+        "pay_note": ((pay or {}).get("company_avg") or {}).get("basis"),
+        "pay_stated": (pay or {}).get("stated"),
+        # 마감 표기 — "~09/20(일)", "상시채용" 처럼 날짜가 아닌 것이 섞여 온다.
+        # 원본(p.deadline)은 D-day 계산에 쓰므로 그대로 두고 표시용만 옮긴다.
+        "deadline_text": p.deadline,
+        "software": list(p.software or []),
+        "company": p.company,
+    })
+    k = kit_dict(kit)
+    if k:
+        src["mail_subject"] = k.get("subject")
+        src["mail_body"] = k.get("body")
+        src["mail_hooks"] = k.get("hooks") or []
+        src["mail_asks"] = k.get("ask_points") or []
+    return src
 
 
 HANGUL = re.compile(r"[가-힣]")

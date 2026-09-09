@@ -16,6 +16,10 @@ on:
         description: "전체 훑기(sweep)로 실행"
         type: boolean
         default: false
+      resend:
+        description: "사이트에 떠 있는 공고를 텔레그램에 전부 다시 보낸다"
+        type: boolean
+        default: false
 
 concurrency:
   group: radar              # 이전 실행이 아직 돌면 겹치지 않게
@@ -44,7 +48,7 @@ jobs:
 
       # JS 로 그리는 채용페이지(한국 ATS, 대만 사무소)를 읽으려면 실제 브라우저가 필요하다
       - name: 브라우저 설치
-        if: github.event_name != 'push'      # 수집을 안 하면 브라우저도 필요 없다 (2분 절약)
+        if: github.event_name != 'push' && inputs.resend != true   # 수집을 안 하면 브라우저도 필요 없다
         run: python -m playwright install --with-deps chromium
 
       # 이미 보낸 공고를 기억해야 같은 걸 두 번 안 보낸다.
@@ -60,7 +64,6 @@ jobs:
       # 판정·화면 코드를 고친 배포는 수집이 필요 없다. 저장분을 그대로 다시 그리면 된다.
       # 새 공고를 찾는 건 cron 과 주간 스윕의 몫이다.
       - name: 실행
-        if: github.event_name != 'push'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -68,8 +71,10 @@ jobs:
           TELEGRAM_TOPIC_KR: ${{ secrets.TELEGRAM_TOPIC_KR }}
           TELEGRAM_TOPIC_JP: ${{ secrets.TELEGRAM_TOPIC_JP }}
           TELEGRAM_TOPIC_TW: ${{ secrets.TELEGRAM_TOPIC_TW }}
+          TELEGRAM_TOPIC_OPEN: ${{ secrets.TELEGRAM_TOPIC_OPEN }}
           CANDIDATE_NAME: ${{ secrets.CANDIDATE_NAME }}
           CANDIDATE_SCHOOL: ${{ secrets.CANDIDATE_SCHOOL }}
+        if: github.event_name != 'push' && inputs.resend != true
         run: |
           if [ "${{ github.event.schedule }}" = "0 0 * * 1" ] || [ "${{ inputs.sweep }}" = "true" ]; then
             echo "::notice::주간 전체 훑기"
@@ -86,6 +91,19 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python tools/translate_postings.py --limit 80 || true
+
+      # 사이트에 떠 있는 공고를 텔레그램에 전부 다시 보낸다 (수동 실행 전용).
+      # 저장분은 러너 캐시에 있으므로 여기서 돌려야 클라우드의 실제 목록이 나간다.
+      - name: 전부 다시 보내기
+        if: inputs.resend == true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_IDS: ${{ secrets.TELEGRAM_CHAT_IDS }}
+          TELEGRAM_TOPIC_KR: ${{ secrets.TELEGRAM_TOPIC_KR }}
+          TELEGRAM_TOPIC_JP: ${{ secrets.TELEGRAM_TOPIC_JP }}
+          TELEGRAM_TOPIC_TW: ${{ secrets.TELEGRAM_TOPIC_TW }}
+          TELEGRAM_TOPIC_OPEN: ${{ secrets.TELEGRAM_TOPIC_OPEN }}
+        run: python tools/send_all.py
 
       # 실행 결과로 정적 사이트를 다시 만든다 → 링크만 있으면 누구나 본다
       # 이 단계가 메일 초안에서 이름·학교를 가린다. 값을 못 받으면 초안을 통째로 뺀다.
