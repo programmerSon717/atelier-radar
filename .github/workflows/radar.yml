@@ -35,7 +35,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 35   # JS 렌더링이 붙어 느려졌다
+    timeout-minutes: 55   # JS 렌더링 + 번역(공고당 수십 초)
     steps:
       - uses: actions/checkout@v4
 
@@ -88,6 +88,10 @@ jobs:
       # 푸시 배포에서도 돌린다. 안 돌리면 클라우드 저장분에 번역이 영영 안 생겨서
       # 언어를 바꿔도 공고는 원문 그대로 나온다. 다만 배포가 늦어지지 않게 개수를 끊는다.
       - name: 번역 (한국어·영어·번체중문)
+        # 번역이 오래 걸려도 배포까지 막지는 않는다. 못 옮긴 건 다음 실행이 이어서 한다
+        # (해시가 안 맞는 것만 다시 부른다).
+        continue-on-error: true
+        timeout-minutes: 25
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python tools/translate_postings.py --limit 80 || true
