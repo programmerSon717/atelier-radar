@@ -91,6 +91,10 @@ SYSTEM = """\
    번체중문으로 首爾 麻浦區 다. 번지·건물명은 원문을 살린다.
    한글 음을 지어서 붙이지 마라 — "大林組" 를 "오바마구미" 라고 쓴 적이 있다. 확실하지
    않으면 원문만 둔다.
+   **법인격 표기는 그 언어 것으로 바꾸거나 뺀다** — "(주)Hoorim E&C" 처럼 한국어
+   법인격에 로마자를 붙여 놓지 마라. 영어는 그냥 "Hoorim E&C", 번체중문은 "希林".
+   **주소는 끝까지 옮긴다.** "성산로 559" 를 그대로 두지 마라 — 城山路 559 다.
+   번지·건물 고유명만 원문을 살린다.
 4. 자격 요건의 **수치·기간·급수·연도는 절대 바꾸지 마라** (TOEIC 700, N2, 2027년 2월 등).
    **조건의 방향도 바꾸지 마라.** "경력 3년 이하 대상" 은 3년 넘으면 안 된다는 뜻이지
    3년을 요구한다는 뜻이 아니다. 뒤집으면 지원할 수 있는 자리를 잃는다.
@@ -102,10 +106,13 @@ SYSTEM = """\
    **공고에서 따온 인용문도 옮긴다.** "신입 가능 — 正社員としての就業経験のない方" 처럼
    대시 뒤에 원문을 붙여 둔 자리가 많은데, 그 뒷부분까지 전부 옮겨야 한다.
    회사명·프로젝트명만 예외다.
-   gate_evidence 는 "이렇게 적혀 있어서 그렇게 판정했다" 는 근거다. 옮긴 문장을 먼저
-   쓰고, **원문을 괄호 안에 그대로 덧붙인다** — 근거는 원문이 남아야 확인할 수 있다.
+   **원문을 괄호에 덧붙이는 자리는 gate_evidence 하나뿐이다.**
+   gate_evidence 는 "이렇게 적혀 있어서 그렇게 판정했다" 는 근거라, 원문이 남아야
+   사람이 확인할 수 있다. 옮긴 문장을 먼저 쓰고 원문을 괄호에 붙인다.
    예: Language ability is not required if you can communicate openly
        (원문: オープンマインドでコミュニケーションできる方であれば語学力は問いません)
+   **다른 필드에는 절대 붙이지 마라.** met·unknowns·gate_reason·fit_why·pay_stated 에
+   "(원문: …)" 나 괄호 속 한국어·일본어를 남기면 안 된다. 그 자리는 옮긴 말만 쓴다.
 7. **software 는 도구의 공식 표기로 쓴다** — "스케치업"→SketchUp, "라이노"→Rhino.
    한글·가나로 음차된 도구 이름을 그대로 두지 마라.
 8. **deadline_text 는 마감 표기다. 숫자와 형식을 절대 바꾸지 마라.**
@@ -121,7 +128,7 @@ SYSTEM = """\
 
 # 프롬프트·용어표를 고치면 이미 옮겨 둔 것도 다시 옮겨야 한다. 안 그러면 해시가 같아서
 # "안 바뀐 것" 으로 보고 건너뛰고, 옛 번역이 화면에 그대로 남는다. 실제로 그랬다.
-PROMPT_VERSION = 5
+PROMPT_VERSION = 6
 
 
 def source_hash(bundle: dict[str, Any]) -> str:
@@ -218,6 +225,50 @@ def _hangul_left(data: dict[str, Any]) -> list[str]:
     return out
 
 
+# "(원문: …)" 병기는 gate_evidence 에서만 맞다. 다른 자리에 붙으면 떼어낸다 —
+# 모델에게 다시 부탁하는 것보다 확실하고, 옮긴 말은 이미 앞에 있다.
+# 다만 **주소의 괄호는 건드리지 않는다** — "(代新洞, 珍솔大樓)" 는 병기가 아니라 주소다.
+PAREN = re.compile(r"[（(]([^()（）]*)[)）]")
+MARKED = re.compile(r"^\s*(?:원문|原文)\s*[:：]")
+NO_PAREN_STRIP = {"location", "apply_how", "contact_email", "contact_phone"}
+
+
+def _is_echo(inner: str) -> bool:
+    """괄호 안이 '옮기다 만 원문' 인가. 표시가 있거나, 대부분이 한글·가나면 그렇다."""
+    if MARKED.search(inner):
+        return True
+    letters = [ch for ch in inner if ch.isalpha()]
+    if not letters:
+        return False
+    native = sum(1 for ch in letters if HANGUL.match(ch) or KANA.match(ch))
+    return native / len(letters) >= 0.6
+
+
+def _strip_paren_original(data: dict[str, Any]) -> int:
+    """옮긴 값 뒤에 괄호로 붙은 원문을 뗀다. 뗀 개수를 돌려준다."""
+    n = 0
+
+    def fix(v):
+        nonlocal n
+        if not isinstance(v, str):
+            return v
+        out = PAREN.sub(lambda m: "" if _is_echo(m.group(1)) else m.group(0), v)
+        out = re.sub(r"\s{2,}", " ", out).strip(" \t·-—")
+        # 통째로 사라졌으면 원래 값을 지킨다 (빈 칸을 남기는 것보다 낫다)
+        if out and out != v:
+            n += 1
+            return out
+        return v
+
+    for lang in ("en", "zh_TW"):
+        d = data.get(lang) or {}
+        for k, v in list(d.items()):
+            if k in KEEP_ORIGINAL or k in NO_PAREN_STRIP:
+                continue
+            d[k] = [fix(x) for x in v] if isinstance(v, list) else fix(v)
+    return n
+
+
 def _repair(client, data: dict[str, Any], leftovers: list[str], cfg: dict, model_name: str) -> None:
     """옮기다 만 조각만 짚어서 다시 옮긴다. 실패하면 그냥 둔다 (원문이라도 보이는 게 낫다)."""
     from google.genai import types
@@ -280,6 +331,8 @@ def translate(client, bundle: dict[str, Any], cfg: dict,
             data = json.loads(r.text) if r.text else None
             if not data:
                 continue
+            # 괄호 병기부터 뗀다. 안 그러면 "옮기다 만 것"으로 잘못 세어 또 부른다.
+            _strip_paren_original(data)
             # 영어·번체중문 결과에 한글이 남아 있으면 옮기다 만 것이다. 한 번 더 부른다.
             leftovers = _hangul_left(data)
             # 남은 게 한두 조각이면 그것만 따로 옮긴다. 통째로 다시 부르는 것보다 잘 된다.

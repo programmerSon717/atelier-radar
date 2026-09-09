@@ -111,6 +111,27 @@ check("영어 시험은 충족 조건", any("영어 시험" in m for m in assess
 ko = P(title="신입 채용", language_test="TOPIK 4급 이상")
 check("TOPIK 은 장벽", eligibility.judge(ko, "KR").gate, "native")
 
+# ── 번역 뒤처리 ────────────────────────────────────────────
+# 모델이 옮긴 값 뒤에 원문을 괄호로 붙여 놓는 일이 있다. gate_evidence 에서만 맞다.
+# 주소·날짜처럼 진짜 정보가 든 괄호까지 떼면 안 된다.
+from src import i18n as _i18n                                       # noqa: E402
+_t = {"zh_TW": {
+    "gate_reason": "公告中完全未提及外籍應徵 (원문: 공고에 외국인 채용 언급이 없음)",
+    "unknowns": ["公告未載明語言要求 (언어 요건 미기재)"],
+    "pay_stated": "詳細資訊請查看 My Page (詳細はマイページをご確認ください)",
+    "location": "首爾 西大門區 城山路 559 (代新洞, 珍솔大樓) 4樓",
+    "employment_type": "正職 (2026年4月入社)",
+    "gate_evidence": "海外大學畢業 (原文: 海外の大学を卒業)",
+}}
+_i18n._strip_paren_original(_t)
+_z = _t["zh_TW"]
+check("옮긴 뒤 붙은 원문을 뗀다", _z["gate_reason"], "公告中完全未提及外籍應徵")
+check("목록도 뗀다", _z["unknowns"], ["公告未載明語言要求"])
+check("급여 문구도 뗀다", _z["pay_stated"], "詳細資訊請查看 My Page")
+check("주소 괄호는 그대로 둔다", "代新洞" in _z["location"], True)
+check("날짜 괄호는 그대로 둔다", _z["employment_type"], "正職 (2026年4月入社)")
+check("판정 근거는 원문을 남긴다", "原文" in _z["gate_evidence"], True)
+
 # ── 문구가 한곳에서 오는가 ──────────────────────────────────
 # site/ui.js 는 config/locales/*.yaml 에서 생성된다. 손으로 고치면 웹과 봇이 갈린다.
 from tools.build_ui import OUT as UI_JS, build as build_ui          # noqa: E402
