@@ -25,7 +25,9 @@ load_dotenv(ROOT / ".env")
 from src import notify                                             # noqa: E402
 from src.render import load_locale, render_posting                 # noqa: E402
 from src.targets import load_config                                # noqa: E402
+from src import i18n                                               # noqa: E402
 from tools.export_data import selected                             # noqa: E402
+from tools.translate_postings import display_bundle                # noqa: E402
 
 
 async def run(args) -> int:
@@ -43,11 +45,24 @@ async def run(args) -> int:
     if args.limit:
         rows = rows[:args.limit]
 
-    missing = [r for r in rows if not ((r.payload.get("_i18n") or {}).get(lang))]
-    if missing and not args.allow_untranslated:
-        print(f"번역이 없는 공고가 {len(missing)}건 있다. 먼저 옮겨라:\n"
+    # 번역이 있는지만 보면 부족하다. 프롬프트를 고치면 옛 번역이 그대로 남아 있어서
+    # '있긴 있는' 상태가 된다 — 그걸 보내면 예전 문구가 다시 나간다.
+    stale = []
+    for r in rows:
+        cur = r.payload.get("_i18n") or {}
+        if not cur.get(lang):
+            stale.append((r, "번역 없음"))
+            continue
+        want = i18n.source_hash(display_bundle(r.payload, r.office))
+        if cur.get("hash") != want:
+            stale.append((r, "옛 번역"))
+    if stale and not args.allow_untranslated:
+        why = {}
+        for _r, k in stale:
+            why[k] = why.get(k, 0) + 1
+        print(f"보낼 수 없다 — {', '.join(f'{k} {v}건' for k, v in why.items())}. 먼저 옮겨라:\n"
               f"    ./.venv/bin/python tools/translate_postings.py\n"
-              f"원문 그대로라도 보내려면 --allow-untranslated", file=sys.stderr)
+              f"그래도 보내려면 --allow-untranslated", file=sys.stderr)
         return 1
 
     print(f"{len(rows)}건 · 언어 {lang} · "
@@ -87,7 +102,7 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--delay", type=float, default=3.0, help="메시지 간격(초)")
     ap.add_argument("--allow-untranslated", action="store_true",
-                    help="번역이 없어도 원문 그대로 보낸다")
+                    help="번역이 없거나 옛 번역이어도 그대로 보낸다")
     return asyncio.run(run(ap.parse_args()))
 
 

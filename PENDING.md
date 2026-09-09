@@ -8,8 +8,12 @@
          이름을 중문으로 바꾸려면 `--rename`)
       2. 나온 `TELEGRAM_TOPIC_OPEN` 값을 리포 Settings → Secrets 에 같은 이름으로 등록
       **없으면 지원 가능 건이 나라 토픽에만 간다** (동작은 한다 — 그 토픽만 안 생길 뿐)
-- [ ] **53건 다시 보내기 실행** — Actions → atelier-radar → Run workflow → `resend` 체크.
-      클라우드 저장분(캐시)이 진짜 목록이라 로컬에서 돌리면 안 된다
+- [ ] **전체 다시 보내기 실행** — Actions → atelier-radar → Run workflow → `resend` 체크.
+      클라우드 저장분(캐시)이 진짜 목록이라 로컬에서 돌리면 안 된다.
+      **번역이 다 끝난 뒤에 눌러야 한다.** 옛 번역이 남아 있으면 `send_all.py` 가
+      "옛 번역 N건" 으로 거부한다 (예전 문구가 다시 나가는 걸 막는 장치다).
+      프롬프트를 고치면 전량 재번역이라 한 번에 안 끝날 수 있다 — 거부당하면
+      cron 을 한두 번 더 돌게 두고(10분 주기) 다시 누른다
 - [ ] **GitHub Actions 시크릿 등록 확인** — 리포 Settings → Secrets 에 7개가 있어야 한다.
       `GEMINI_API_KEY` `TELEGRAM_BOT_TOKEN` `TELEGRAM_CHAT_IDS`
       `TELEGRAM_TOPIC_KR/JP/TW` `CANDIDATE_NAME` (+ 새로 추가된 `CANDIDATE_SCHOOL`)
