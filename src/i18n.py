@@ -343,8 +343,11 @@ def translate(client, bundle: dict[str, Any], cfg: dict,
             _strip_paren_original(data)
             # 영어·번체중문 결과에 한글이 남아 있으면 옮기다 만 것이다. 한 번 더 부른다.
             leftovers = _hangul_left(data)
-            # 남은 게 한두 조각이면 그것만 따로 옮긴다. 통째로 다시 부르는 것보다 잘 된다.
-            if leftovers and attempt_left <= 0:
+            # 남은 조각은 **그것만 따로** 옮긴다. 통째로 다시 부르는 것보다 잘 되고
+            # 훨씬 싸다. 예전에는 통째 재호출이 먼저라 공고 하나에 세 번씩 부르느라
+            # 25분에 17건밖에 못 옮겼다. 조각 보수를 먼저 하고, 그래도 남을 때만
+            # 통째로 다시 부른다.
+            if leftovers:
                 _repair(client, data, leftovers, cfg, model_name)
                 leftovers = _hangul_left(data)
             if leftovers and attempt_left > 0:

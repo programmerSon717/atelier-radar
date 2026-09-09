@@ -10,6 +10,7 @@ import argparse
 import json
 import sqlite3
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -43,20 +44,10 @@ def display_bundle(d: dict, off) -> dict:
     return i18n.bundle_of(src)
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--all", action="store_true", help="이미 번역된 것도 다시")
-    ap.add_argument("--limit", type=int, default=0)
-    args = ap.parse_args()
-
-    cfg = load_config()
-    by = {o.id: o for o in load_offices()}
-    conn = sqlite3.connect(ROOT / "store" / "radar.sqlite")
-    rows = conn.execute("SELECT key, payload FROM sent_posting").fetchall()
-
-    client = _client()
-    done = skipped = failed = 0
-    for key, pl in rows:
+def _todo(conn, by, args) -> list[tuple]:
+    """옮겨야 할 것만 고른다 — (key, payload, bundle, hash)."""
+    out, skipped = [], 0
+    for key, pl in conn.execute("SELECT key, payload FROM sent_posting").fetchall():
         d = json.loads(pl)
         off = by.get(d.get("office_id"))
         if off is None:
@@ -79,20 +70,49 @@ def main() -> int:
             continue
         if left:
             print(f"  ↻ 남은 자리 {len(left)}개 다시: {d.get('title','')[:32]}")
-
-        out = i18n.translate(client, bundle, cfg)
-        if not out:
-            failed += 1
-            print(f"  ✗ {d.get('title','')[:40]}")
-            continue
-        d["_i18n"] = {"hash": h, **out}
-        conn.execute("UPDATE sent_posting SET payload=? WHERE key=?",
-                     (json.dumps(d, ensure_ascii=False), key))
-        conn.commit()
-        done += 1
-        print(f"  ✓ {d.get('title','')[:40]:42} → {out['ko'].get('title','')[:30]}")
-        if args.limit and done >= args.limit:
+        out.append((key, d, bundle, h))
+        if args.limit and len(out) >= args.limit:
             break
+    return out, skipped
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--all", action="store_true", help="이미 번역된 것도 다시")
+    ap.add_argument("--limit", type=int, default=0)
+    # 한 건이 수십 초다. 순서대로 돌리면 50여 건에 한 시간이 넘어간다.
+    ap.add_argument("--workers", type=int, default=3, help="동시 호출 수")
+    args = ap.parse_args()
+
+    cfg = load_config()
+    by = {o.id: o for o in load_offices()}
+    conn = sqlite3.connect(ROOT / "store" / "radar.sqlite")
+    todo, skipped = _todo(conn, by, args)
+    print(f"옮길 것 {len(todo)}건 · 그대로 {skipped}건 · 동시 {args.workers}")
+
+    client = _client()
+    done = failed = 0
+    # 쓰기는 메인 스레드에서만 한다 (sqlite 연결을 스레드 간에 나눠 쓰지 않는다)
+    with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
+        futs = {pool.submit(i18n.translate, client, b, cfg): (k, d, h)
+                for k, d, b, h in todo}
+        for fut in as_completed(futs):
+            key, d, h = futs[fut]
+            try:
+                out = fut.result()
+            except Exception as e:
+                out = None
+                print(f"  ✗ {d.get('title','')[:36]} — {type(e).__name__}: {str(e)[:60]}")
+            if not out:
+                failed += 1
+                continue
+            d["_i18n"] = {"hash": h, **out}
+            conn.execute("UPDATE sent_posting SET payload=? WHERE key=?",
+                         (json.dumps(d, ensure_ascii=False), key))
+            conn.commit()
+            done += 1
+            print(f"  ✓ [{done}/{len(todo)}] {d.get('title','')[:38]:40} "
+                  f"→ {out['ko'].get('title','')[:28]}", flush=True)
 
     print(f"\n번역 {done}건 · 그대로 {skipped}건 · 실패 {failed}건")
     return 0
