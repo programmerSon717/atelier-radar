@@ -9,3 +9,4 @@ data/profile/*.pdf
 data/profile/resume.pdf
 data/profile/portfolio.pdf
 .bun/
+store/site_i18n_cache.json

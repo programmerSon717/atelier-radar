@@ -26,13 +26,18 @@ from dotenv import load_dotenv                                     # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT / ".env")
 
-from src import eligibility, notify, relevance, salary, verified    # noqa: E402
+from concurrent.futures import ThreadPoolExecutor, as_completed      # noqa: E402
+import json                                                         # noqa: E402
+
+from src import eligibility, i18n, notify, relevance, salary, verified  # noqa: E402
 from src.match import assess                                        # noqa: E402
 from src.models import Posting                                      # noqa: E402
 from src.render import load_locale, render_posting                  # noqa: E402
 from src.targets import load_config, load_offices                   # noqa: E402
 
 SITE = "https://programmerson717.github.io/atelier-radar/data.json"
+# 클라우드가 아직 못 옮긴 것을 여기서 옮겼을 때 담아 두는 자리. 다시 부르지 않으려고 남긴다.
+CACHE = ROOT / "store" / "site_i18n_cache.json"
 
 
 def unredact(v):
@@ -48,6 +53,70 @@ def unredact(v):
     if isinstance(v, dict):
         return {k: unredact(x) for k, x in v.items()}
     return v
+
+
+def _rebuild(x, off):
+    """사이트 항목 하나에서 판정 객체들을 다시 만든다 (클라우드가 만든 것과 같은 코드)."""
+    p = Posting(**{k: v for k, v in x.items() if k in Posting.model_fields})
+    verified.apply(p)
+    pc = x.get("country") or off.country
+    a = assess(p, pc, off)
+    e = eligibility.judge(p, pc)
+    return p, pc, a, e, relevance.fit_grade(p, off, a), salary.describe(p, pc, off.tier, off.id)
+
+
+def fill_missing(posts, by, cfg, lang, workers=3) -> dict:
+    """옛 번역인 것만 여기서 옮긴다. 클라우드 저장분은 못 고치지만 보낼 것은 만들 수 있다."""
+    from src.extract import _client
+
+    cache = {}
+    if CACHE.exists():
+        try:
+            cache = json.loads(CACHE.read_text(encoding="utf-8"))
+        except Exception:
+            cache = {}
+
+    # 사이트 data.json 은 번역 해시를 싣지 않는다. 그래서 "클라우드 것이 최신인가" 를
+    # 밖에서는 알 수 없다 — 필드 유무로 짐작했더니, 마감·급여가 아예 없는 공고를
+    # 죄다 '옛 번역' 으로 잘못 셌다. 여기서 옮긴 것만 해시로 확실히 안다.
+    todo = []
+    for x in posts:
+        key = x.get("source_url") or x.get("title")
+        off = by.get(x.get("office_id"))
+        if off is None:
+            continue
+        p, _pc, a, e, fit, pay = _rebuild(x, off)
+        bundle = i18n.bundle_of(i18n.display_source(p, a, e, fit[1], pay,
+                                                    unredact(x.get("outreach"))))
+        h = i18n.source_hash(bundle)
+        if cache.get(key, {}).get("hash") == h:
+            x["i18n"] = {**(x.get("i18n") or {}), **cache[key]["packs"]}
+            continue
+        todo.append((key, x, bundle, h))
+
+    if not todo:
+        return cache
+    print(f"클라우드가 아직 못 옮긴 {len(todo)}건을 여기서 옮긴다 (동시 {workers})", file=sys.stderr)
+    client = _client()
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futs = {pool.submit(i18n.translate, client, b, cfg): (k, x, h) for k, x, b, h in todo}
+        done = 0
+        for fut in as_completed(futs):
+            key, x, h = futs[fut]
+            try:
+                packs = fut.result()
+            except Exception as ex:
+                print(f"  ✗ {x.get('title','')[:34]} — {type(ex).__name__}", file=sys.stderr)
+                continue
+            if not packs:
+                continue
+            x["i18n"] = {**(x.get("i18n") or {}), **packs}
+            cache[key] = {"hash": h, "packs": packs}
+            done += 1
+            print(f"  ✓ [{done}/{len(todo)}] {x.get('title','')[:40]}", file=sys.stderr, flush=True)
+    CACHE.parent.mkdir(exist_ok=True)
+    CACHE.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+    return cache
 
 
 async def run(args) -> int:
@@ -68,11 +137,16 @@ async def run(args) -> int:
     if args.limit:
         posts = posts[:args.limit]
 
-    stale = [x for x in posts if not (((x.get("i18n") or {}).get(lang) or {}).get("deadline_text")
-                                      or ((x.get("i18n") or {}).get(lang) or {}).get("pay_stated"))]
-    if stale and not args.allow_untranslated:
-        print(f"아직 옛 번역인 공고가 {len(stale)}건이다. 번역이 끝난 뒤에 보내라.\n"
-              f"그래도 보내려면 --allow-untranslated", file=sys.stderr)
+    verified_keys = set()
+    if args.fill_missing:
+        verified_keys = set(fill_missing(posts, by, cfg, lang, args.workers))
+
+    unsure = [x for x in posts
+              if (x.get("source_url") or x.get("title")) not in verified_keys]
+    if unsure and not args.allow_untranslated:
+        print(f"번역이 최신인지 확인 못 한 공고가 {len(unsure)}건이다.\n"
+              f"--fill-missing 으로 여기서 옮기거나, --allow-untranslated 로 그냥 보내라.",
+              file=sys.stderr)
         return 1
 
     ok = fail = 0
@@ -80,13 +154,7 @@ async def run(args) -> int:
         off = by.get(x.get("office_id"))
         if off is None:
             continue
-        p = Posting(**{k: v for k, v in x.items() if k in Posting.model_fields})
-        verified.apply(p)
-        pc = x.get("country") or off.country
-        a = assess(p, pc, off)
-        e = eligibility.judge(p, pc)
-        fit = relevance.fit_grade(p, off, a)
-        pay = salary.describe(p, pc, off.tier, off.id)
+        p, pc, a, e, fit, pay = _rebuild(x, off)
         tr = unredact((x.get("i18n") or {}).get(lang))
         kit = unredact(x.get("outreach"))
 
@@ -120,6 +188,9 @@ def main() -> int:
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--delay", type=float, default=3.0, help="메시지 간격(초)")
     ap.add_argument("--allow-untranslated", action="store_true")
+    ap.add_argument("--fill-missing", action="store_true",
+                    help="클라우드가 아직 못 옮긴 것을 여기서 옮겨서 보낸다")
+    ap.add_argument("--workers", type=int, default=3)
     return asyncio.run(run(ap.parse_args()))
 
 
