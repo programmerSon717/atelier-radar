@@ -10,8 +10,11 @@
 """
 import asyncio
 import os
+from functools import lru_cache
+from pathlib import Path
 
 import httpx2 as httpx
+import yaml
 
 API = "https://api.telegram.org/bot{token}/{method}"
 
@@ -24,12 +27,29 @@ def chat_ids() -> list[str]:
     return [c.strip() for c in raw.split(",") if c.strip()]
 
 
-def topic_id(name: str) -> int | None:
-    """국가 코드(또는 OPEN) → 토픽 id. 설정이 없으면 None (일반 채팅으로 간다)."""
-    raw = os.environ.get(f"TELEGRAM_TOPIC_{name.upper()}")
+@lru_cache(maxsize=1)
+def _configured_topics() -> dict:
+    """config/settings.yaml 의 telegram.topics — 시크릿을 빠뜨렸을 때의 바닥값."""
     try:
-        return int(raw) if raw else None
-    except ValueError:
+        cfg = yaml.safe_load(
+            (Path(__file__).resolve().parent.parent / "config" / "settings.yaml")
+            .read_text(encoding="utf-8")) or {}
+        return (cfg.get("telegram") or {}).get("topics") or {}
+    except Exception:
+        return {}
+
+
+def topic_id(name: str) -> int | None:
+    """국가 코드(또는 OPEN) → 토픽 id. 없으면 None (일반 채팅으로 간다).
+
+    환경변수가 먼저다. 없으면 settings.yaml 에 적어 둔 값을 쓴다 — 시크릿을 하나
+    빠뜨렸다고 그 토픽 글이 조용히 일반 채팅으로 새면 알아채기 어렵다."""
+    raw = os.environ.get(f"TELEGRAM_TOPIC_{name.upper()}")
+    if raw in (None, ""):
+        raw = _configured_topics().get(name.upper())
+    try:
+        return int(raw) if raw not in (None, "") else None
+    except (TypeError, ValueError):
         return None
 
 
